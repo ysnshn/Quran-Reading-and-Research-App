@@ -1,0 +1,3460 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Al-Kitāb | Offline-First Quran Reading, Search & Research Platform">
+    <meta name="theme-color" content="#047857">
+    <title>Al-Kitāb | Kur'an Okuma ve Araştırma Platformu</title>
+
+    <!-- Inline PWA Manifest via Data URI (Zero external manifest file needed) -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Al-Kitab%20Quran%20Research%22%2C%22short_name%22%3A%22Al-Kitab%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%23047857%22%7D">
+
+    <style>
+        /* ==========================================================================
+           1. DESIGN TOKENS & THEMES (Light, Sepia, Dark) - Zero External CSS
+           ========================================================================== */
+        :root, [data-theme="light"] {
+            --bg-app: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-surface-alt: #f1f5f9;
+            --bg-note: #fffbeb;
+            --border-color: #e2e8f0;
+            --border-note: #fde68a;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --accent: #047857;
+            --accent-hover: #065f46;
+            --accent-soft: #ecfdf5;
+            --accent-border: #a7f3d0;
+            --accent-text: #065f46;
+            --highlight-bg: #fef08a;
+            --highlight-text: #713f12;
+            --note-badge-bg: #fef3c7;
+            --note-badge-text: #92400e;
+            --xref-bg: #e0f2fe;
+            --xref-text: #0369a1;
+            --xref-border: #bae6fd;
+            --section-max-h: 220px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        [data-theme="sepia"] {
+            --bg-app: #f4ecd8;
+            --bg-surface: #faf5e8;
+            --bg-surface-alt: #efe5ce;
+            --bg-note: #f3e8cf;
+            --border-color: #dfd1b3;
+            --border-note: #d4c098;
+            --text-primary: #3b2d1f;
+            --text-secondary: #523f2c;
+            --text-muted: #7c654d;
+            --accent: #7c4a21;
+            --accent-hover: #5e3616;
+            --accent-soft: #efe3cb;
+            --accent-border: #d6be96;
+            --accent-text: #5e3616;
+            --highlight-bg: #f5d08a;
+            --highlight-text: #3b2d1f;
+            --note-badge-bg: #e6d3ae;
+            --note-badge-text: #4a351c;
+            --xref-bg: #e7dec8;
+            --xref-text: #5b3a18;
+            --xref-border: #cbb792;
+        }
+
+        [data-theme="dark"] {
+            --bg-app: #0b1120;
+            --bg-surface: #111827;
+            --bg-surface-alt: #1e293b;
+            --bg-note: #1a2234;
+            --border-color: #293548;
+            --border-note: #3b4963;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --accent-soft: rgba(16, 185, 129, 0.12);
+            --accent-border: rgba(16, 185, 129, 0.3);
+            --accent-text: #34d399;
+            --highlight-bg: #854d0e;
+            --highlight-text: #fef9c3;
+            --note-badge-bg: rgba(245, 158, 11, 0.18);
+            --note-badge-text: #fbbf24;
+            --xref-bg: rgba(56, 189, 248, 0.15);
+            --xref-text: #38bdf8;
+            --xref-border: rgba(56, 189, 248, 0.35);
+        }
+
+        /* ==========================================================================
+           2. RESET & BASE TYPOGRAPHY
+           ========================================================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .app-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Crisp Offline Arabic Font Stack */
+        .arabic-text {
+            font-family: "Amiri", "Scheherazade New", "Traditional Arabic", "Geeza Pro", "Noto Naskh Arabic", "Arabic Typesetting", serif;
+            direction: rtl;
+            text-align: right;
+            line-height: 2.25;
+            word-spacing: 3px;
+            color: var(--text-primary);
+        }
+
+        /* ==========================================================================
+           3. STICKY ONE-LINE / COMPACT HEADER TOOLBAR
+           ========================================================================== */
+        .app-header {
+            flex: none;
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            z-index: 30;
+            position: sticky;
+            top: 0;
+        }
+
+        .header-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0.55rem 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background-color: var(--accent);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .brand-text h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent-text);
+            line-height: 1.1;
+        }
+
+        .brand-text span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .control-select, .control-input {
+            background-color: var(--bg-surface-alt);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .control-select:focus, .control-input:focus {
+            border-color: var(--accent);
+        }
+
+        .surah-select {
+            min-width: 165px;
+            max-width: 220px;
+        }
+
+        .translation-select {
+            min-width: 160px;
+            max-width: 220px;
+            border-color: var(--accent-border);
+            background-color: var(--accent-soft);
+            color: var(--accent-text);
+            font-weight: 600;
+        }
+
+        .ayah-jump-group {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--bg-surface-alt);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2px 4px;
+            gap: 4px;
+        }
+
+        .ayah-jump-group label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            padding-left: 4px;
+            font-weight: 600;
+        }
+
+        .ayah-jump-group input {
+            width: 46px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-surface-alt);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-text);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            color: #ffffff;
+        }
+
+        .btn-accent-soft {
+            background-color: var(--accent-soft);
+            border-color: var(--accent-border);
+            color: var(--accent-text);
+        }
+
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.74rem;
+        }
+
+        .kbd-hint {
+            font-size: 0.68rem;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.08);
+            font-family: monospace;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .segmented-group {
+            display: inline-flex;
+            background-color: var(--bg-surface-alt);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .segmented-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.74rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .segmented-btn.active {
+            background-color: var(--bg-surface);
+            color: var(--accent-text);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ==========================================================================
+           4. MAIN VIEWPORT & 3-SECTION SYNCHRONIZED LAYOUT
+           ========================================================================== */
+        .app-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .surah-banner {
+            flex: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: #ffffff;
+            padding: 0.75rem 1.25rem;
+        }
+
+        .surah-banner-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .surah-banner h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .surah-banner p {
+            font-size: 0.76rem;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        .bismillah-header {
+            font-family: "Amiri", "Traditional Arabic", serif;
+            font-size: 1.55rem;
+            letter-spacing: 1px;
+        }
+
+        .verses-viewport {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.75rem 1rem 3rem 1rem;
+        }
+
+        .verses-wrapper {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .columns-header {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            padding: 0.6rem 1rem;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            z-index: 15;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .col-h-arabic { grid-column: span 4; text-align: right; }
+        .col-h-trans  { grid-column: span 4; border-left: 1px solid var(--border-color); padding-left: 1rem; }
+        .col-h-notes  { grid-column: span 4; border-left: 1px solid var(--border-color); padding-left: 1rem; }
+
+        .verses-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        /* Verse Row (3 Sections) */
+        .verse-card {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .verse-card:hover {
+            border-color: var(--accent-border);
+        }
+
+        .verse-card.active-verse {
+            border-left: 4px solid var(--accent);
+            background-color: var(--accent-soft);
+        }
+
+        .verse-card.xref-pulse {
+            animation: xrefHighlightPulse 2s ease-out;
+        }
+
+        @keyframes xrefHighlightPulse {
+            0%   { box-shadow: 0 0 0 4px var(--accent); background-color: var(--accent-soft); }
+            70%  { box-shadow: 0 0 0 2px var(--accent-border); }
+            100% { box-shadow: var(--shadow-sm); }
+        }
+
+        /* Section 1: Arabic */
+        .sec-arabic {
+            grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-width: 0;
+        }
+
+        .sec-arabic-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.45rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .ayah-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background-color: var(--accent-soft);
+            border: 1px solid var(--accent-border);
+            color: var(--accent-text);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .verse-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        /* Section 2: Translation with Inline Superscript Footnotes */
+        .sec-translation {
+            grid-column: span 4;
+            border-left: 1px solid var(--border-color);
+            padding-left: 1rem;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .sec-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--accent-text);
+            margin-bottom: 0.45rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .translation-body {
+            line-height: 1.75;
+            color: var(--text-primary);
+        }
+
+        /* Inline Footnote Reference Pill ([1], [2]) */
+        .fn-ref {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 5px;
+            margin: 0 2px;
+            border-radius: 4px;
+            background-color: var(--note-badge-bg);
+            color: var(--note-badge-text);
+            border: 1px solid var(--border-note);
+            cursor: pointer;
+            vertical-align: super;
+            transition: transform 0.1s, background-color 0.15s;
+        }
+
+        .fn-ref:hover, .fn-ref.fn-active {
+            background-color: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        /* Interactive Verse Cross-Reference Pill ([Rum 30:30], [30:30]) */
+        .verse-xref {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 0.78em;
+            font-weight: 700;
+            padding: 1px 6px;
+            margin: 0 2px;
+            border-radius: 5px;
+            background-color: var(--xref-bg);
+            color: var(--xref-text);
+            border: 1px solid var(--xref-border);
+            cursor: pointer;
+            vertical-align: baseline;
+            transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .verse-xref:hover {
+            background-color: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        /* Section 3: Fixed-Height, Smooth-Scrolling & Resizable Boxes (All 3 Columns) */
+        .sec-notes {
+            grid-column: span 4;
+            border-left: 1px solid var(--border-color);
+            padding-left: 1rem;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .section-scroll-box {
+            max-height: var(--section-max-h);
+            min-height: 76px;
+            overflow-y: auto;
+            resize: vertical;
+            padding-right: 4px;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-border) transparent;
+            border-radius: 8px;
+        }
+
+        .section-scroll-box.section-unbounded {
+            max-height: none;
+            resize: none;
+        }
+
+        .section-scroll-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .section-scroll-box::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .section-scroll-box::-webkit-scrollbar-thumb {
+            background-color: var(--border-note);
+            border-radius: 999px;
+        }
+
+        .section-scroll-box::-webkit-scrollbar-thumb:hover {
+            background-color: var(--accent);
+        }
+
+        .notes-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .note-item {
+            background-color: var(--bg-note);
+            border: 1px solid var(--border-note);
+            border-radius: 8px;
+            padding: 0.55rem 0.7rem;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .note-item.note-highlighted {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-border);
+            background-color: var(--accent-soft);
+        }
+
+        .note-num-badge {
+            display: inline-block;
+            font-weight: 700;
+            font-size: 0.72rem;
+            padding: 1px 6px;
+            margin-right: 6px;
+            border-radius: 4px;
+            background-color: var(--note-badge-bg);
+            color: var(--note-badge-text);
+            border: 1px solid var(--border-note);
+        }
+
+        .no-notes-msg {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 0.5rem 0;
+        }
+
+        /* Cross-Reference Navigation History Bar & Toast */
+        .nav-history-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            background-color: rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+        }
+
+        .nav-history-bar.hidden {
+            display: none;
+        }
+
+        .nav-hist-btn {
+            background-color: #ffffff;
+            color: var(--accent-hover);
+            border: none;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .nav-hist-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .toast-banner {
+            position: fixed;
+            bottom: 3.1rem;
+            right: 1rem;
+            z-index: 80;
+            background-color: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--accent);
+            border-left: 4px solid var(--accent);
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            font-size: 0.8rem;
+            max-width: 420px;
+        }
+
+        .toast-banner.hidden {
+            display: none;
+        }
+
+        /* ==========================================================================
+           5. STICKY FOOTER
+           ========================================================================== */
+        .app-footer {
+            flex: none;
+            background-color: var(--bg-surface);
+            border-top: 1px solid var(--border-color);
+            padding: 0.45rem 1rem;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            z-index: 25;
+        }
+
+        .footer-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            background: none;
+            border: none;
+            font-size: 0.74rem;
+            cursor: pointer;
+        }
+
+        .footer-link:hover {
+            color: var(--accent-text);
+            text-decoration: underline;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background-color: var(--accent-soft);
+            color: var(--accent-text);
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--accent);
+        }
+
+        /* ==========================================================================
+           6. MODALS (Extended Search Pop-Up & Custom Note/JSON Studio)
+           ========================================================================== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-backdrop.hidden {
+            display: none;
+        }
+
+        .modal-dialog {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 920px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-dialog-md {
+            max-width: 660px;
+        }
+
+        .modal-header {
+            padding: 0.85rem 1.15rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-surface-alt);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .modal-search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .modal-subbar {
+            padding: 0.5rem 1.15rem;
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.15rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .modal-footer {
+            padding: 0.6rem 1.15rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-surface-alt);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+        }
+
+        /* Full Search Result Card (Shows Arabic + Translation + ALL Numbered Notes) */
+        .search-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.9rem;
+            background-color: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            transition: border-color 0.15s;
+        }
+
+        .search-card:hover {
+            border-color: var(--accent);
+        }
+
+        .search-card-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.45rem;
+        }
+
+        .search-surah-ref {
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: var(--accent-text);
+        }
+
+        .search-tags {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .match-tag {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: var(--bg-surface-alt);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .search-notes-box {
+            background-color: var(--bg-note);
+            border: 1px solid var(--border-note);
+            border-radius: 8px;
+            padding: 0.65rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .search-notes-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--note-badge-text);
+        }
+
+        mark.hl {
+            background-color: var(--highlight-bg);
+            color: var(--highlight-text);
+            padding: 0 2px;
+            border-radius: 3px;
+            font-weight: 700;
+        }
+
+        /* Form Elements inside Custom Note/Translation Modal */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .form-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 85px;
+            background-color: var(--bg-surface-alt);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.6rem;
+            font-family: inherit;
+            font-size: 0.84rem;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        .code-preview {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 220px;
+        }
+
+        /* ==========================================================================
+           7. RESPONSIVE ADAPTATIONS (Mobile & Tablet)
+           ========================================================================== */
+        .mobile-only { display: none; }
+
+        @media (max-width: 960px) {
+            .columns-header { display: none; }
+            .verse-card { grid-template-columns: 1fr; gap: 0.75rem; }
+            .sec-arabic, .sec-translation, .sec-notes {
+                grid-column: span 1;
+                border-left: none;
+                padding-left: 0;
+            }
+            .sec-translation, .sec-notes {
+                border-top: 1px dashed var(--border-color);
+                padding-top: 0.65rem;
+            }
+            .mobile-only { display: inline-flex; }
+            .hide-mobile { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+
+    <!-- ======================================================================
+         STICKY HEADER (Full Filters, Translation Switcher, Language & Theme)
+         ====================================================================== -->
+    <header class="app-header">
+        <div class="header-inner">
+            <!-- Brand -->
+            <div class="brand">
+                <div class="brand-logo" aria-hidden="true">ق</div>
+                <div class="brand-text">
+                    <h1>Al-Kitāb</h1>
+                    <span id="uiSubtitle">Kur'an Okuma ve Araştırma</span>
+                </div>
+            </div>
+
+            <!-- Extended Filters & Translation Selector -->
+            <div class="filter-bar">
+                <!-- Surah Filter -->
+                <select id="surahSelect" class="control-select surah-select" aria-label="Surah Selector"></select>
+
+                <!-- Ayah Jump -->
+                <div class="ayah-jump-group">
+                    <label for="verseJumpInput" id="uiLabelAyah">Ayet:</label>
+                    <input type="number" id="verseJumpInput" min="1" placeholder="1">
+                    <button type="button" id="btnJumpVerse" class="btn btn-primary btn-xs" title="Ayete Git">→</button>
+                </div>
+
+                <!-- Translation / Source Track Selector -->
+                <select id="translationSelect" class="control-select translation-select" aria-label="Translation Source">
+                    <option value="suleymaniye">Süleymaniye Vakfı Meali</option>
+                    <option value="custom">Benim Mealim &amp; Notlarım (Özel)</option>
+                </select>
+
+                <!-- Extended Search Pop-Up Button -->
+                <button type="button" id="btnOpenSearch" class="btn btn-accent-soft">
+                    <span>🔍</span>
+                    <span id="uiBtnSearch">Kapsamlı Arama</span>
+                    <kbd class="kbd-hint hide-mobile">Ctrl+K</kbd>
+                </button>
+
+                <!-- Edit Custom Notes / Git JSON Studio Button -->
+                <button type="button" id="btnOpenStudio" class="btn" title="Kendi Meal ve Notlarını Ekle / Git JSON Al">
+                    <span>✎</span>
+                    <span id="uiBtnStudio" class="hide-mobile">Not / Meal Ekle</span>
+                </button>
+            </div>
+
+            <!-- Right Controls: Mobile Section Tabs, Font Size, Language Switcher, Theme -->
+            <div class="toolbar-right">
+                <!-- Mobile Column Filter -->
+                <div class="segmented-group mobile-only" id="mobileTabGroup">
+                    <button type="button" data-tab="all" class="segmented-btn active" id="tabAll">Tümü</button>
+                    <button type="button" data-tab="arabic" class="segmented-btn" id="tabAr">Ar</button>
+                    <button type="button" data-tab="translation" class="segmented-btn" id="tabTr">Meal</button>
+                    <button type="button" data-tab="notes" class="segmented-btn" id="tabNote">Not</button>
+                </div>
+
+                <!-- Font Size -->
+                <div class="segmented-group hide-mobile">
+                    <button type="button" id="btnFontDec" class="segmented-btn" title="Yazıyı Küçült">A-</button>
+                    <span id="fontSizeDisplay" class="segmented-btn" style="cursor:default;">100%</span>
+                    <button type="button" id="btnFontInc" class="segmented-btn" title="Yazıyı Büyüt">A+</button>
+                </div>
+
+                <!-- Section Height Preset (Compact / Standard / Tall / Full for All 3 Columns) -->
+                <div class="segmented-group hide-mobile" title="Bölüm Kutusu Yüksekliği (Arapça, Meal ve Notlar — sağ alt köşeden de sürüklenebilir)">
+                    <button type="button" data-notes-h="160px" class="segmented-btn" id="nhCompact">Boy:S</button>
+                    <button type="button" data-notes-h="220px" class="segmented-btn active" id="nhStandard">Boy:M</button>
+                    <button type="button" data-notes-h="380px" class="segmented-btn" id="nhTall">Boy:L</button>
+                    <button type="button" data-notes-h="full" class="segmented-btn" id="nhFull">Tam</button>
+                </div>
+
+                <!-- Language Switcher (TR | EN + Optional /en/index.html Folder Support) -->
+                <div class="segmented-group" title="Dil Değiştir / Switch Language">
+                    <button type="button" data-lang-set="tr" class="segmented-btn active">TR</button>
+                    <button type="button" data-lang-set="en" class="segmented-btn">EN</button>
+                </div>
+
+                <!-- Theme Switcher (Light / Sepia / Dark) -->
+                <div class="segmented-group" title="Görünüm Teması">
+                    <button type="button" data-theme-set="light" class="segmented-btn" title="Açık Tema">☀</button>
+                    <button type="button" data-theme-set="sepia" class="segmented-btn" title="Sepya Tema">📖</button>
+                    <button type="button" data-theme-set="dark" class="segmented-btn" title="Koyu Tema">🌙</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ======================================================================
+         MAIN 3-SECTION READING AREA
+         ====================================================================== -->
+    <main class="app-main">
+        <!-- Surah Banner -->
+        <section class="surah-banner">
+            <div class="surah-banner-inner">
+                <div>
+                    <h2 id="currentSurahTitle">1. Al-Fātiḥah (الفاتحة)</h2>
+                    <p id="currentSurahSub">Mekki • 7 Ayet • Kaynak: Süleymaniye Vakfı Meali</p>
+                </div>
+
+                <!-- Cross-Reference Back / Forward Navigation Pill -->
+                <div id="navHistoryBar" class="nav-history-bar hidden" aria-live="polite">
+                    <button type="button" id="btnNavBack" class="nav-hist-btn" disabled>← Geri</button>
+                    <span id="navHistoryTrail" style="font-weight: 600; opacity: 0.95;">1:2 → 30:30</span>
+                    <button type="button" id="btnNavForward" class="nav-hist-btn" disabled>İleri →</button>
+                </div>
+
+                <div id="bismillahContainer" class="bismillah-header">
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </div>
+            </div>
+        </section>
+
+        <!-- Synchronized 3-Column Scroll Viewport -->
+        <div id="versesViewport" class="verses-viewport">
+            <div class="verses-wrapper">
+                <!-- Column Headers -->
+                <div class="columns-header">
+                    <div class="col-h-arabic" id="colHeadArabic">1. Arapça Metin (Mushaf)</div>
+                    <div class="col-h-trans" id="colHeadTrans">2. Meal ve Dipnot Referansları [1]</div>
+                    <div class="col-h-notes" id="colHeadNotes">3. Numaralı Açıklama ve Notlar</div>
+                </div>
+
+                <!-- Dynamic Verses List -->
+                <div id="versesContainer" class="verses-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================
+         STICKY FOOTER (Logo Info, Source Attribution, Offline/Cloudflare Status)
+         ====================================================================== -->
+    <footer class="app-footer">
+        <div class="footer-inner">
+            <div class="footer-links">
+                <strong style="color: var(--accent-text);">Al-Kitāb</strong>
+                <span>•</span>
+                <span id="uiFooterSource">Meal Kaynağı:</span>
+                <a href="https://suleymaniyevakfimeali.com" target="_blank" rel="noopener noreferrer" class="footer-link">suleymaniyevakfimeali.com</a>
+                <span>•</span>
+                <button type="button" id="btnOpenGuide" class="footer-link">114 Sure &amp; Git Rehberi</button>
+                <span>•</span>
+                <button type="button" id="btnOpenPrivacy" class="footer-link">Gizlilik &amp; Çevrimdışı PWA</button>
+            </div>
+
+            <div class="footer-links">
+                <span id="dataOriginBadge" class="status-pill">
+                    <span class="status-dot"></span>
+                    <span id="uiPwaStatus">Çevrimdışı Hazır (0 Harici Bağlantı)</span>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ======================================================================
+         MODAL 1: EXTENDED SEARCH POP-UP (Shows Arabic + Translation + FULL Notes)
+         ====================================================================== -->
+    <div id="searchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="searchInput">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span style="font-size: 1.1rem;">🔍</span>
+                <input type="text" id="searchInput" class="modal-search-input" placeholder="Arapça kelime, meal veya dipnotlarda ara...">
+                <button type="button" id="btnCloseSearch" class="btn btn-xs">ESC / ✕</button>
+            </div>
+
+            <div class="modal-subbar">
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chkSearchArabic" checked>
+                        <span id="uiChkAr">Arapça</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chkSearchTranslation" checked>
+                        <span id="uiChkTr">Meal</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chkSearchNotes" checked>
+                        <span id="uiChkNotes">Numaralı Notlar</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chkSearchAllTracks">
+                        <span id="uiChkAllTracks">Tüm Meallerde Ara</span>
+                    </label>
+                </div>
+                <span id="searchResultsCount" style="font-weight: 700; color: var(--accent-text);">0 sonuç</span>
+            </div>
+
+            <div id="searchResultsList" class="modal-body"></div>
+
+            <div class="modal-footer">
+                <span id="uiSearchTip">Tüm dipnotlar sonuç kartında tam metin olarak gösterilir.</span>
+                <span id="uiSearchOffline">İstemci Tarafı Anlık Arama</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         MODAL 2: CUSTOM TRANSLATION & NUMBERED NOTES EDITOR + GIT JSON EXPORT
+         ====================================================================== -->
+    <div id="studioModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-md">
+            <div class="modal-header">
+                <strong style="color: var(--accent-text);" id="uiStudioTitle">✎ Kendi Meal &amp; Numaralı Not Düzenleyicisi (Git / LocalStorage)</strong>
+                <button type="button" id="btnCloseStudio" class="btn btn-xs">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;" id="uiStudioDesc">
+                    Meal metni içinde dipnot referansı vermek için <strong>[1]</strong>, <strong>[2]</strong>; ayetler arası atıf vermek için <strong>[Rum 30:30]</strong>, <strong>[Rome 30:30]</strong> veya <strong>[30:30]</strong> yazın. Kaydettiğinizde anında aktif olur; alttaki <strong>quran-data.json</strong> dosyasını indirip Git deponuza yüklediğinizde Cloudflare Pages üzerinden tüm cihazlarda otomatik yüklenir.
+                </p>
+
+                <!-- 114-Surah Scaffolder (Add any missing Surah 1..114 with 1 click) -->
+                <div style="background-color: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: 10px; padding: 0.65rem; display: flex; flex-direction: column; gap: 0.45rem;">
+                    <span class="form-label" style="color: var(--accent-text);">+ Tüm Kur'an'ı (114 Sure) Tamamlama Aracı:</span>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <select id="allSurahCatalogSelect" class="control-select" style="flex: 1;"></select>
+                        <button type="button" id="btnScaffoldSurah" class="btn btn-primary btn-xs">Sureyi Şablon Olarak Ekle</button>
+                        <label class="btn btn-xs" style="cursor: pointer;">
+                            <span>📂 JSON Yükle</span>
+                            <input type="file" id="fileImportJson" accept=".json,application/json" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <select id="studioSurahSelect" class="control-select" style="flex: 1;"></select>
+                    <select id="studioVerseSelect" class="control-select" style="width: 130px;"></select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="studioTrackSelect">Düzenlenecek Meal Katmanı:</label>
+                    <select id="studioTrackSelect" class="control-select">
+                        <option value="custom">Benim Mealim &amp; Notlarım (Özel)</option>
+                        <option value="suleymaniye">Süleymaniye Vakfı Meali</option>
+                    </select>
+                </div>
+
+                <!-- Remote Cloudflare Pages/Workers JSON Source & Bulk Tools -->
+                <div style="background-color: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.65rem; display: flex; flex-direction: column; gap: 0.45rem;">
+                    <label class="form-label" for="remoteJsonUrlInput">☁ Uzak Cloudflare Pages / Workers JSON Bağlantısı (Dil Bazlı: quran-data-tr.json / quran-data-en.json):</label>
+                    <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+                        <input type="url" id="remoteJsonUrlInput" class="control-input" style="flex: 1; min-width: 210px;" placeholder="./quran-data-tr.json veya https://proje.pages.dev/quran-data-tr.json">
+                        <button type="button" id="btnSaveRemoteUrl" class="btn btn-primary btn-xs">Bağla ve Çek</button>
+                    </div>
+                    <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.25rem;">
+                        <button type="button" id="btnCloneSuleymaniyeToCustom" class="btn btn-accent-soft btn-xs" title="Boş olan 'Benim Mealim' ayetlerini Süleymaniye Vakfı metni ve dipnotlarıyla doldurur">
+                            📋 Süleymaniye Metnini 'Benim Mealim'e Başlangıç Olarak Kopyala
+                        </button>
+                        <button type="button" id="btnScaffoldAll114" class="btn btn-xs" title="Eksik olan tüm 114 surenin iskeletini tek tıkla oluşturur">
+                            📚 114 Surenin Tamamını Şablonla
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="studioTranslationInput">Meal Metni (Örn: "Hamd [1], âlemlerin Rabbi [2] Allah'a mahsustur.")</label>
+                    <textarea id="studioTranslationInput" class="form-textarea" placeholder="Meal metnini [1], [2] referanslarıyla yazın..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="studioNotesInput">Numaralı Notlar (Ayet atıfları için [Rum 30:30] veya [30:30] kullanabilirsiniz)</label>
+                    <textarea id="studioNotesInput" class="form-textarea" placeholder="1: Birinci dipnot açıklaması... Bkz. [Rum 30:30] ve [Fatiha 1:2].&#10;2: İkinci dipnot açıklaması..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" id="btnSaveCustomVerse" class="btn btn-primary">Kaydet ve Uygula</button>
+                    <button type="button" id="btnCopyJsonExport" class="btn btn-accent-soft">Git İçin JSON Kopyala</button>
+                    <button type="button" id="btnDownloadJson" class="btn">quran-data-tr.json İndir</button>
+                    <button type="button" id="btnResetLocalOverrides" class="btn" title="Tarayıcı önbelleğini temizleyip Git üzerindeki dil JSON dosyası ile eşitle">Git JSON ile Eşitle</button>
+                </div>
+
+                <div class="form-group">
+                    <span class="form-label">Git / Cloudflare Pages JSON Önizlemesi:</span>
+                    <pre id="jsonExportPreview" class="code-preview"></pre>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <span>Değişiklikler otomatik olarak tarayıcınıza da kaydedilir.</span>
+                <button type="button" id="btnCloseStudioFooter" class="btn btn-xs">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         MODAL 3: 114-SURAH & GIT/CLOUDFLARE GUIDE / PRIVACY INFO MODAL
+         ====================================================================== -->
+    <div id="infoModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-md">
+            <div class="modal-header">
+                <strong id="infoModalTitle" style="color: var(--accent-text);">Bilgi</strong>
+                <button type="button" id="btnCloseInfo" class="btn btn-xs">✕</button>
+            </div>
+            <div id="infoModalBody" class="modal-body" style="font-size: 0.84rem; line-height: 1.65; color: var(--text-secondary);"></div>
+            <div class="modal-footer">
+                <span>Al-Kitāb Offline PWA</span>
+                <button type="button" id="btnCloseInfoBtn" class="btn btn-primary btn-xs">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non-Blocking Toast Banner for Missing Surah Cross-References / Sync Status -->
+    <div id="toastBanner" class="toast-banner hidden" role="status" aria-live="polite">
+        <span id="toastMessage" style="flex: 1;"></span>
+        <button type="button" id="toastActionBtn" class="btn btn-primary btn-xs hidden"></button>
+        <button type="button" id="toastCloseBtn" class="btn btn-xs">✕</button>
+    </div>
+
+</div>
+
+<!-- ==========================================================================
+     JAVASCRIPT APPLICATION ENGINE (100% Safe DOM APIs, Zero innerHTML)
+     ========================================================================== -->
+<script>
+    "use strict";
+
+    /**
+     * ========================================================================
+     * 0. COMPLETE 114-SURAH METADATA & CROSS-REFERENCE ALIAS CATALOG
+     * ========================================================================
+     * Enables instant resolution of [Rum 30:30], [Rome 30:30], [Ar-Rum 30:30],
+     * [Bakara 2:2], [Al-Baqarah 2:2], [30:30], etc., and 1-click scaffolding!
+     */
+    const ALL_114_SURAHS_CATALOG = [
+        [1,"Al-Fatihah","Fatiha","الفاتحة",7,"Mekki","Meccan",["fatiha","fatihah","alfatihah","opening"]],
+        [2,"Al-Baqarah","Bakara","البقرة",286,"Medeni","Medinan",["bakara","baqarah","albaqarah","cow"]],
+        [3,"Ali 'Imran","Al-i İmran","آل عمران",200,"Medeni","Medinan",["imran","aliimran","alimran"]],
+        [4,"An-Nisa","Nisa","النساء",176,"Medeni","Medinan",["nisa","annisaa","annisa","women"]],
+        [5,"Al-Ma'idah","Maide","المائدة",120,"Medeni","Medinan",["maide","maidah","almaidah"]],
+        [6,"Al-An'am","En'am","الأنعام",165,"Mekki","Meccan",["enam","anam","alanam"]],
+        [7,"Al-A'raf","A'raf","الأعراف",206,"Mekki","Meccan",["araf","alaraf"]],
+        [8,"Al-Anfal","Enfal","الأنفال",75,"Medeni","Medinan",["enfal","anfal","alanfal"]],
+        [9,"At-Tawbah","Tevbe","التوبة",129,"Medeni","Medinan",["tevbe","tawbah","attawbah","beraet"]],
+        [10,"Yunus","Yunus","يونس",109,"Mekki","Meccan",["yunus","jonah"]],
+        [11,"Hud","Hud","هود",123,"Mekki","Meccan",["hud"]],
+        [12,"Yusuf","Yusuf","يوسف",111,"Mekki","Meccan",["yusuf","joseph"]],
+        [13,"Ar-Ra'd","Ra'd","الرعد",43,"Medeni","Medinan",["rad","arrad","thunder"]],
+        [14,"Ibrahim","İbrahim","إبراهيم",52,"Mekki","Meccan",["ibrahim","abraham"]],
+        [15,"Al-Hijr","Hicr","الحجر",99,"Mekki","Meccan",["hicr","hijr","alhijr"]],
+        [16,"An-Nahl","Nahl","النحل",128,"Mekki","Meccan",["nahl","annahl","bee"]],
+        [17,"Al-Isra","İsra","الإسراء",111,"Mekki","Meccan",["isra","alisra"]],
+        [18,"Al-Kahf","Kehf","الكهف",110,"Mekki","Meccan",["kehf","kahf","alkahf","cave"]],
+        [19,"Maryam","Meryem","مريم",98,"Mekki","Meccan",["meryem","maryam","mary"]],
+        [20,"Taha","Taha","طه",135,"Mekki","Meccan",["taha"]],
+        [21,"Al-Anbya","Enbiya","الأنبياء",112,"Mekki","Meccan",["enbiya","anbya","anbiya"]],
+        [22,"Al-Hajj","Hac","الحج",78,"Medeni","Medinan",["hac","hajj","alhajj"]],
+        [23,"Al-Mu'minun","Mü'minun","المؤمنون",118,"Mekki","Meccan",["muminun","almuminun"]],
+        [24,"An-Nur","Nur","النور",64,"Medeni","Medinan",["nur","annur","light"]],
+        [25,"Al-Furqan","Furkan","الفرقان",77,"Mekki","Meccan",["furkan","furqan","alfurqan"]],
+        [26,"Ash-Shu'ara","Şuara","الشعراء",227,"Mekki","Meccan",["suara","shuara"]],
+        [27,"An-Naml","Neml","النمل",93,"Mekki","Meccan",["neml","naml","annaml"]],
+        [28,"Al-Qasas","Kasas","القصص",88,"Mekki","Meccan",["kasas","qasas","alqasas"]],
+        [29,"Al-'Ankabut","Ankebut","العنكبوت",69,"Mekki","Meccan",["ankebut","ankabut","spider"]],
+        [30,"Ar-Rum","Rûm","الروم",60,"Mekki","Meccan",["rum","rome","romans","arrum"]],
+        [31,"Luqman","Lokman","لقمان",34,"Mekki","Meccan",["lokman","luqman"]],
+        [32,"As-Sajdah","Secde","السجدة",30,"Mekki","Meccan",["secde","sajdah","assajdah"]],
+        [33,"Al-Ahzab","Ahzab","الأحزاب",73,"Medeni","Medinan",["ahzab","alahzab"]],
+        [34,"Saba","Sebe","سبإ",54,"Mekki","Meccan",["sebe","saba","sheba"]],
+        [35,"Fatir","Fâtır","فاطر",45,"Mekki","Meccan",["fatir"]],
+        [36,"Ya-Sin","Yâsîn","يس",83,"Mekki","Meccan",["yasin"]],
+        [37,"As-Saffat","Sâffât","الصافات",182,"Mekki","Meccan",["saffat","assaffat"]],
+        [38,"Sad","Sâd","ص",88,"Mekki","Meccan",["sad"]],
+        [39,"Az-Zumar","Zümer","الزمر",75,"Mekki","Meccan",["zumer","zumar","azzumar"]],
+        [40,"Ghafir","Mü'min / Gâfir","غافر",85,"Mekki","Meccan",["gafir","ghafir","mumin"]],
+        [41,"Fussilat","Fussilet","فصلت",54,"Mekki","Meccan",["fussilet","fussilat"]],
+        [42,"Ash-Shuraa","Şûrâ","الشورى",53,"Mekki","Meccan",["sura","shura","shuraa"]],
+        [43,"Az-Zukhruf","Zuhruf","الزخرف",89,"Mekki","Meccan",["zuhruf","zukhruf"]],
+        [44,"Ad-Dukhan","Duhân","الدخان",59,"Mekki","Meccan",["duhan","dukhan"]],
+        [45,"Al-Jathiyah","Câsiye","الجاثية",37,"Mekki","Meccan",["casiye","jathiyah"]],
+        [46,"Al-Ahqaf","Ahkâf","الأحقاف",35,"Mekki","Meccan",["ahkaf","ahqaf"]],
+        [47,"Muhammad","Muhammed","محمد",38,"Medeni","Medinan",["muhammed","muhammad"]],
+        [48,"Al-Fath","Fetih","الفتح",29,"Medeni","Medinan",["fetih","fath","alfath"]],
+        [49,"Al-Hujurat","Hucurât","الحجرات",18,"Medeni","Medinan",["hucurat","hujurat"]],
+        [50,"Qaf","Kâf","ق",45,"Mekki","Meccan",["kaf","qaf"]],
+        [51,"Adh-Dhariyat","Zâriyât","الذاريات",60,"Mekki","Meccan",["zariyat","dhariyat"]],
+        [52,"At-Tur","Tûr","الطور",49,"Mekki","Meccan",["tur","attur"]],
+        [53,"An-Najm","Necm","النجم",62,"Mekki","Meccan",["necm","najm","annajm"]],
+        [54,"Al-Qamar","Kamer","القمر",55,"Mekki","Meccan",["kamer","qamar","alqamar"]],
+        [55,"Ar-Rahman","Rahmân","الرحمن",78,"Medeni","Medinan",["rahman","arrahman"]],
+        [56,"Al-Waqi'ah","Vâkıa","الواقعة",96,"Mekki","Meccan",["vakia","waqiah"]],
+        [57,"Al-Hadid","Hadîd","الحديد",29,"Medeni","Medinan",["hadid","alhadid"]],
+        [58,"Al-Mujadila","Mücâdele","المجادلة",22,"Medeni","Medinan",["mucadele","mujadila"]],
+        [59,"Al-Hashr","Haşr","الحشر",24,"Medeni","Medinan",["hasr","hashr","alhashr"]],
+        [60,"Al-Mumtahanah","Mümtehine","الممتحنة",13,"Medeni","Medinan",["mumtehine","mumtahanah"]],
+        [61,"As-Saf","Saff","الصف",14,"Medeni","Medinan",["saf","saff","assaf"]],
+        [62,"Al-Jumu'ah","Cuma","الجمعة",11,"Medeni","Medinan",["cuma","jumuah"]],
+        [63,"Al-Munafiqun","Münâfikûn","المنافقون",11,"Medeni","Medinan",["munafikun","munafiqun"]],
+        [64,"At-Taghabun","Tegâbün","التغابن",18,"Medeni","Medinan",["tegabun","taghabun"]],
+        [65,"At-Talaq","Talâk","الطلاق",12,"Medeni","Medinan",["talak","talaq"]],
+        [66,"At-Tahrim","Tahrîm","التحريم",12,"Medeni","Medinan",["tahrim","attahrim"]],
+        [67,"Al-Mulk","Mülk","الملك",30,"Mekki","Meccan",["mulk","almulk"]],
+        [68,"Al-Qalam","Kalem","القلم",52,"Mekki","Meccan",["kalem","qalam","alqalam"]],
+        [69,"Al-Haqqah","Hâkka","الحاقة",52,"Mekki","Meccan",["hakka","haqqah"]],
+        [70,"Al-Ma'arij","Meâric","المعارج",44,"Mekki","Meccan",["mearic","maarij"]],
+        [71,"Nuh","Nûh","نوح",28,"Mekki","Meccan",["nuh","noah"]],
+        [72,"Al-Jinn","Cin","الجن",28,"Mekki","Meccan",["cin","jinn","aljinn"]],
+        [73,"Al-Muzzammil","Müzzemmil","المزمل",20,"Mekki","Meccan",["muzzemmil","muzzammil"]],
+        [74,"Al-Muddaththir","Müddessir","المدثر",56,"Mekki","Meccan",["muddessir","muddaththir"]],
+        [75,"Al-Qiyamah","Kıyâmet","القيامة",40,"Mekki","Meccan",["kiyamet","qiyamah"]],
+        [76,"Al-Insan","İnsân / Dehr","الإنسان",31,"Medeni","Medinan",["insan","dehr","alinsan"]],
+        [77,"Al-Mursalat","Mürselât","المرسلات",50,"Mekki","Meccan",["murselat","mursalat"]],
+        [78,"An-Naba","Nebe","النبإ",40,"Mekki","Meccan",["nebe","naba","annaba"]],
+        [79,"An-Nazi'at","Nâziât","النازعات",46,"Mekki","Meccan",["naziat","annaziat"]],
+        [80,"'Abasa","Abese","عبس",42,"Mekki","Meccan",["abese","abasa"]],
+        [81,"At-Takwir","Tekvîr","التكوير",29,"Mekki","Meccan",["tekvir","takwir"]],
+        [82,"Al-Infitar","İnfitâr","الانفطار",19,"Mekki","Meccan",["infitar","alinfitar"]],
+        [83,"Al-Mutaffifin","Mutaffifîn","المطففين",36,"Mekki","Meccan",["mutaffifin"]],
+        [84,"Al-Inshiqaq","İnşikâk","الانشقاق",25,"Mekki","Meccan",["insikak","inshiqaq"]],
+        [85,"Al-Buruj","Bürûc","البروج",22,"Mekki","Meccan",["buruc","buruj"]],
+        [86,"At-Tariq","Târık","الطارق",17,"Mekki","Meccan",["tarik","tariq"]],
+        [87,"Al-A'la","A'lâ","الأعلى",19,"Mekki","Meccan",["ala","alala"]],
+        [88,"Al-Ghashiyah","Gâşiye","الغاشية",26,"Mekki","Meccan",["gasiye","ghashiyah"]],
+        [89,"Al-Fajr","Fecr","الفجر",30,"Mekki","Meccan",["fecr","fajr","alfajr"]],
+        [90,"Al-Balad","Beled","البلد",20,"Mekki","Meccan",["beled","balad"]],
+        [91,"Ash-Shams","Şems","الشمس",15,"Mekki","Meccan",["sems","shams"]],
+        [92,"Al-Layl","Leyl","الليل",21,"Mekki","Meccan",["leyl","layl"]],
+        [93,"Ad-Duhaa","Duhâ","الضحى",11,"Mekki","Meccan",["duha","duhaa"]],
+        [94,"Ash-Sharh","İnşirâh","الشرح",8,"Mekki","Meccan",["insirah","sharh"]],
+        [95,"At-Tin","Tîn","التين",8,"Mekki","Meccan",["tin","attin"]],
+        [96,"Al-'Alaq","Alak","العلق",19,"Mekki","Meccan",["alak","alaq","alalaq"]],
+        [97,"Al-Qadr","Kadir","القدر",5,"Mekki","Meccan",["kadir","qadr","alqadr"]],
+        [98,"Al-Bayyinah","Beyyine","البينة",8,"Medeni","Medinan",["beyyine","bayyinah"]],
+        [99,"Az-Zalzalah","Zilzâl","الزلزلة",8,"Medeni","Medinan",["zilzal","zalzalah"]],
+        [100,"Al-'Adiyat","Âdiyât","العاديات",11,"Mekki","Meccan",["adiyat","aladiyat"]],
+        [101,"Al-Qari'ah","Kâria","القارعة",11,"Mekki","Meccan",["karia","qariah"]],
+        [102,"At-Takathur","Tekâsür","التكاثر",8,"Mekki","Meccan",["tekasur","takathur"]],
+        [103,"Al-'Asr","Asr","العصر",3,"Mekki","Meccan",["asr","alasr"]],
+        [104,"Al-Humazah","Hümeze","الهمزة",9,"Mekki","Meccan",["humeze","humazah"]],
+        [105,"Al-Fil","Fîl","الفيل",5,"Mekki","Meccan",["fil","alfil"]],
+        [106,"Quraysh","Kureyş","قريش",4,"Mekki","Meccan",["kureys","quraysh"]],
+        [107,"Al-Ma'un","Mâûn","الماعون",7,"Mekki","Meccan",["maun","almaun"]],
+        [108,"Al-Kawthar","Kevser","الكوثر",3,"Mekki","Meccan",["kevser","kawthar"]],
+        [109,"Al-Kafirun","Kâfirûn","الكافرون",6,"Mekki","Meccan",["kafirun","alkafirun"]],
+        [110,"An-Nasr","Nasr","النصر",3,"Medeni","Medinan",["nasr","annasr"]],
+        [111,"Al-Masad","Tebbet / Mesed","المسد",5,"Mekki","Meccan",["tebbet","mesed","masad","lahab"]],
+        [112,"Al-Ikhlas","İhlâs","الإخلاص",4,"Mekki","Meccan",["ihlas","ikhlas","alikhlas"]],
+        [113,"Al-Falaq","Felak","الفلق",5,"Mekki","Meccan",["felak","falaq","alfalaq"]],
+        [114,"An-Nas","Nâs","الناس",6,"Mekki","Meccan",["nas","annas"]]
+    ];
+
+    function normalizeSurahAlias(str) {
+        if (!str) return "";
+        return str
+            .replace(/İ/g, "i")
+            .replace(/I/g, "i")
+            .replace(/ı/g, "i")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/ç/g, "c")
+            .replace(/ğ/g, "g")
+            .replace(/ö/g, "o")
+            .replace(/ş/g, "s")
+            .replace(/ü/g, "u")
+            .replace(/[^a-z0-9\u0600-\u06FF]/g, "");
+    }
+
+    function resolveSurahIdByName(rawName) {
+        if (!rawName) return null;
+        const trimmed = rawName.trim();
+        if (/^\d+$/.test(trimmed)) {
+            const num = parseInt(trimmed, 10);
+            return num >= 1 && num <= 114 ? num : null;
+        }
+        const cleaned = normalizeSurahAlias(trimmed);
+        if (!cleaned) return null;
+
+        for (const item of ALL_114_SURAHS_CATALOG) {
+            const [id, en, tr, ar, , , , aliases] = item;
+            const normEn = normalizeSurahAlias(en);
+            const normTr = normalizeSurahAlias(tr);
+            const normAr = normalizeSurahAlias(ar);
+            if (
+                cleaned === normEn ||
+                cleaned === normTr ||
+                cleaned === normAr ||
+                aliases.some(a => normalizeSurahAlias(a) === cleaned)
+            ) {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ========================================================================
+     * 1. EMBEDDED QURAN DATASET (Surahs 1, 2, 30, 112, 113, 114 with Cross-Refs)
+     * ========================================================================
+     */
+    const DEFAULT_QURAN_DB = {
+        translationsMeta: {
+            suleymaniye: {
+                id: "suleymaniye",
+                labelTr: "Süleymaniye Vakfı Meali",
+                labelEn: "Süleymaniye Foundation (TR)",
+                origin: "suleymaniyevakfimeali.com"
+            },
+            custom: {
+                id: "custom",
+                labelTr: "Benim Mealim & Notlarım (Özel)",
+                labelEn: "My Translation & Notes (Custom)",
+                origin: "Git / Local Custom"
+            }
+        },
+        surahs: [
+            {
+                id: 1,
+                name: "Al-Fātiḥah",
+                nameTr: "Fâtiha",
+                arabicName: "الفاتحة",
+                revelationTypeTr: "Mekki",
+                revelationTypeEn: "Meccan",
+                versesCount: 7,
+                bismillahPre: false,
+                verses: [
+                    {
+                        number: 1,
+                        arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Rahmân [1] ve Rahîm [2] olan Allah'ın adıyla.",
+                                notes: {
+                                    "1": "Rahmân: Yarattığı bütün varlıklara, iman edip etmediklerine bakmaksızın dünyada karşılıksız nimet ve merhamet veren demektir. Yaratılıştaki bu fıtrat düzeni için bkz. [Rum 30:30] ve [Rum 30:21].",
+                                    "2": "Rahîm: Yaptığı iyiliklerin karşılığını kat kat veren, özellikle ahirette müminlere özel ikram ve merhamette bulunan demektir. Ayrıca bkz. [Fatiha 1:3] ve [İhlas 112:1]."
+                                }
+                            },
+                            custom: {
+                                text: "Rahmân [1] ve Rahîm [2] olan Allah'ın adıyla.",
+                                notes: {
+                                    "1": "Rahmân: Yarattığı bütün varlıklara, iman edip etmediklerine bakmaksızın dünyada karşılıksız nimet ve merhamet veren demektir. Yaratılıştaki bu fıtrat düzeni için bkz. [Rum 30:30] ve [Rum 30:21].",
+                                    "2": "Rahîm: Yaptığı iyiliklerin karşılığını kat kat veren, özellikle ahirette müminlere özel ikram ve merhamette bulunan demektir. Ayrıca bkz. [Fatiha 1:3] ve [İhlas 112:1]."
+                                }
+                            }
+                        }
+                    },
+                    {
+                        number: 2,
+                        arabic: "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Hamd [1], âlemlerin Rabbi [2] Allah'a mahsustur.",
+                                notes: {
+                                    "1": "Hamd: Yaptığı her şeyi güzel ve yerli yerinde yapanı överek şükretmek demektir. Her şeyin en güzel şekilde yaratılması hakkında bkz. [Rum 30:22].",
+                                    "2": "Rab: Yaratan, besleyip büyüten, eğiten ve varlıkları olgunlaştırarak yöneten sahip demektir."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 3,
+                        arabic: "الرَّحْمَٰنِ الرَّحِيمِ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "O Rahmân'dır, Rahîm'dir [1].",
+                                notes: {
+                                    "1": "Besmelede geçen bu iki sıfat burada tekrar edilerek Allah'ın rubûbiyetinin temelinin merhamet olduğu vurgulanır. Bkz. [Fatiha 1:1]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 4,
+                        arabic: "مَالِكِ يَوْمِ الدِّينِ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Din (hesap) gününün [1] tek sahibidir.",
+                                notes: {
+                                    "1": "Din günü: Herkesin dünyada yaptıklarının karşılığını eksiksiz göreceği ahiret ve hesap günüdür."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 5,
+                        arabic: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Yalnız sana kulluk eder [1] ve yalnız senden yardım dileriz.",
+                                notes: {
+                                    "1": "Kulluk (ibadet): Boyun eğmek, emir ve yasaklara gönülden bağlanmak demektir. Fıtrata uygun dosdoğru din için bkz. [Rum 30:30]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 6,
+                        arabic: "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Bizi dosdoğru yola [1] ilet;",
+                                notes: {
+                                    "1": "Sırat-ı Müstakîm: İfrat ve tefritten uzak, Allah'ın indirdiği Kur'an'ın gösterdiği apaçık doğru yoldur. Bkz. [Bakara 2:2]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 7,
+                        arabic: "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Kendilerine nimet verdiklerinin [1] yoluna; gazaba uğramışların ve sapkınların yoluna değil.",
+                                notes: {
+                                    "1": "Nimet verilenler: Peygamberler, sıddıklar, şehitler ve salih kimselerdir."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 2,
+                name: "Al-Baqarah",
+                nameTr: "Bakara",
+                arabicName: "البقرة",
+                revelationTypeTr: "Medeni",
+                revelationTypeEn: "Medinan",
+                versesCount: 286,
+                bismillahPre: true,
+                verses: [
+                    {
+                        number: 1,
+                        arabic: "الم",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Elif, Lâm, Mîm [1].",
+                                notes: {
+                                    "1": "Hurûf-u Mukattaa: Sure başlarında yer alan bu harfler, Kur'an'ın Arap alfabesindeki harflerden oluştuğuna ve benzerinin getirilemeyeceğine dikkat çeker."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 2,
+                        arabic: "ذَٰلِكَ الْكِتَابُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًى لِّلْمُتَّقِينَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "İşte o Kitap [1]; kendisinde hiçbir şüphe yoktur. Muttakîler [2] için bir yol göstericidir.",
+                                notes: {
+                                    "1": "O Kitap: Yüce Allah katından indirilen Kur'an-ı Kerîm'dir. Bkz. [Fatiha 1:6].",
+                                    "2": "Muttakîler: Allah'ın koyduğu sınırlara saygı gösteren, kendisini kötülüklerden ve azaptan koruyan bilinçli kimselerdir."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 30,
+                name: "Ar-Rūm",
+                nameTr: "Rûm",
+                arabicName: "الروم",
+                revelationTypeTr: "Mekki",
+                revelationTypeEn: "Meccan",
+                versesCount: 60,
+                bismillahPre: true,
+                verses: [
+                    {
+                        number: 21,
+                        arabic: "وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً ۚ إِنَّ فِي ذَٰلِكَ لَآيَاتٍ لِّقَوْمٍ يَتَفَكَّرُونَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Kendileriyle huzur bulasınız diye sizin için türünüzden eşler yaratması ve aranızda bir sevgi ve merhamet [1] var etmesi de O'nun ayetlerindendir. Şüphesiz bunda düşünen bir toplum için ibretler vardır.",
+                                notes: {
+                                    "1": "Sevgi ve merhamet (meveddet ve rahmet): Eşler arasındaki fıtrî bağın ilahî bir ayet olduğunu gösterir. Bkz. [Fatiha 1:1] ve [Rum 30:30]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 22,
+                        arabic: "وَمِنْ آيَاتِهِ خَلْقُ السَّمَاوَاتِ وَالْأَرْضِ وَاخْتِلَافُ أَلْسِنَتِكُمْ وَأَلْوَانِكُمْ ۚ إِنَّ فِي ذَٰلِكَ لَآيَاتٍ لِّلْعَالِمِينَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Göklerin ve yerin yaratılması, dillerinizin ve renklerinizin farklı olması da O'nun ayetlerindendir [1]. Şüphesiz bunda bilenler için ibretler vardır.",
+                                notes: {
+                                    "1": "Dillerin ve renklerin farklılığı insanlığın zenginliğidir; bu çeşitlilik içinde hakikati aramak ilim sahiplerinin görevidir. Bkz. [Fatiha 1:2]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 30,
+                        arabic: "فَأَقِمْ وَجْهَكَ لِلدِّينِ حَنِيفًا ۚ فِطْرَتَ اللَّهِ الَّتِي فَطَرَ النَّاسَ عَلَيْهَا ۚ لَا تَبْدِيلَ لِخَلْقِ اللَّهِ ۚ ذَٰلِكَ الدِّينُ الْقَيِّمُ وَلَٰكِنَّ أَكْثَرَ النَّاسِ لَا يَعْلَمُونَ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "O hâlde yüzünü hanîf [1] olarak bu dine çevir; Allah'ın insanları üzerinde yarattığı fıtrata [2] yönel. Allah'ın yaratmasında hiçbir değişme yoktur. İşte dosdoğru din budur; fakat insanların çoğu bilmezler.",
+                                notes: {
+                                    "1": "Hanîf: Her türlü şirk ve sapmadan yüz çevirip yalnızca bir olan Allah'a yönelen kimsedir. Bkz. [İhlas 112:1] ve [Fatiha 1:5].",
+                                    "2": "Fıtrat: Allah'ın bütün varlıklara ve insanın yaratılış özüne yerleştirdiği değişmez ilahî yapı ve denge yasasıdır. Bkz. [Fatiha 1:1] ve [Rum 30:21]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 112,
+                name: "Al-Ikhlāṣ",
+                nameTr: "İhlâs",
+                arabicName: "الإخلاص",
+                revelationTypeTr: "Mekki",
+                revelationTypeEn: "Meccan",
+                versesCount: 4,
+                bismillahPre: true,
+                verses: [
+                    {
+                        number: 1,
+                        arabic: "قُلْ هُوَ اللَّهُ أَحَدٌ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "De ki: O Allah tektir [1].",
+                                notes: {
+                                    "1": "Ehad: Zatında, sıfatlarında ve fiillerinde eşi, benzeri ve ortağı bulunmayan mutlak tek ilah demektir. Bkz. [Rum 30:30]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 2,
+                        arabic: "اللَّهُ الصَّمَدُ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Allah Samed'dir [1].",
+                                notes: {
+                                    "1": "Samed: Her şeyin kendisine muhtaç olduğu, kendisi ise hiçbir şeye muhtaç olmayan eksiksiz varlıktır."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 3,
+                        arabic: "لَمْ يَلِدْ وَلَمْ يُولَدْ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Doğurmamıştır ve doğurulmamıştır.",
+                                notes: {}
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 4,
+                        arabic: "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "Hiçbir şey O'na denk değildir.",
+                                notes: {}
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 113,
+                name: "Al-Falaq",
+                nameTr: "Felak",
+                arabicName: "الفلق",
+                revelationTypeTr: "Mekki",
+                revelationTypeEn: "Meccan",
+                versesCount: 5,
+                bismillahPre: true,
+                verses: [
+                    {
+                        number: 1,
+                        arabic: "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "De ki: Yaranın (sabah aydınlığının) [1] Rabbine sığınırım;",
+                                notes: {
+                                    "1": "Felak: Karanlığı yarıp çıkaran sabah aydınlığı ve tohumu yarıp çıkaran yaratma gücü anlamına gelir."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 2,
+                        arabic: "مِن شَرِّ مَا خَلَقَ",
+                        tracks: {
+                            suleymaniye: { text: "Yarattığı şeylerin şerrinden,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 3,
+                        arabic: "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ",
+                        tracks: {
+                            suleymaniye: { text: "Çöktüğü zaman gecenin şerrinden,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 4,
+                        arabic: "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ",
+                        tracks: {
+                            suleymaniye: { text: "Düğümlere üfleyenlerin şerrinden,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 5,
+                        arabic: "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ",
+                        tracks: {
+                            suleymaniye: { text: "Ve haset ettiği zaman hasetçinin şerrinden.", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 114,
+                name: "An-Nās",
+                nameTr: "Nâs",
+                arabicName: "الناس",
+                revelationTypeTr: "Mekki",
+                revelationTypeEn: "Meccan",
+                versesCount: 6,
+                bismillahPre: true,
+                verses: [
+                    {
+                        number: 1,
+                        arabic: "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+                        tracks: {
+                            suleymaniye: {
+                                text: "De ki: İnsanların Rabbine sığınırım [1],",
+                                notes: {
+                                    "1": "Nâs suresi, Felak suresi ile birlikte insanı içten ve dıştan kuşatan tehlikelere karşı Allah'a sığınmayı öğretir. Bkz. [Felak 113:1]."
+                                }
+                            },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 2,
+                        arabic: "مَلِكِ النَّاسِ",
+                        tracks: {
+                            suleymaniye: { text: "İnsanların hükümdarına,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 3,
+                        arabic: "إِلَٰهِ النَّاسِ",
+                        tracks: {
+                            suleymaniye: { text: "İnsanların ilahına;", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 4,
+                        arabic: "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ",
+                        tracks: {
+                            suleymaniye: { text: "O sinsi vesvesecinin şerrinden,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 5,
+                        arabic: "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ",
+                        tracks: {
+                            suleymaniye: { text: "Ki o, insanların göğüslerine vesvese verir,", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    },
+                    {
+                        number: 6,
+                        arabic: "مِنَ الْجِنَّةِ وَالنَّاسِ",
+                        tracks: {
+                            suleymaniye: { text: "Gerek cinlerden gerek insanlardan olsun.", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    }
+                ]
+            }
+        ]
+    };
+
+    /**
+     * ========================================================================
+     * 2. MAIN APPLICATION CONTROLLER (Zero innerHTML, Strict Safe DOM Nodes)
+     * ========================================================================
+     */
+    class QuranResearchApp {
+        constructor() {
+            const initialLang = localStorage.getItem("alkitab_lang") || "tr";
+            this.db = JSON.parse(JSON.stringify(DEFAULT_QURAN_DB));
+            this.state = {
+                surahId: 1,
+                activeVerseNum: 1,
+                trackId: localStorage.getItem("alkitab_track") || "suleymaniye",
+                lang: initialLang,
+                theme: localStorage.getItem("alkitab_theme") || "light",
+                fontScale: parseInt(localStorage.getItem("alkitab_font") || "100", 10),
+                notesHeight: localStorage.getItem("alkitab_notes_h") || "220px",
+                remoteJsonUrl: this.getRemoteJsonUrlForLang(initialLang),
+                mobileTab: "all",
+                externalJsonLoaded: false,
+                navHistory: [],
+                navIndex: -1
+            };
+
+            this.cacheDom();
+            this.loadCustomOverridesFromStorage();
+            this.applyTheme(this.state.theme);
+            this.applyFontScale(this.state.fontScale);
+            this.applyNotesHeightPreset(this.state.notesHeight);
+            this.populateSurahDropdowns();
+            this.populateAll114CatalogSelect();
+            this.syncTranslationDropdown();
+            this.applyLanguage(this.state.lang, false);
+            this.bindEvents();
+            this.renderSurah();
+            this.tryLoadExternalJson();
+        }
+
+        getDefaultJsonFilename(lang = this.state.lang) {
+            return `quran-data-${lang}.json`;
+        }
+
+        getRemoteJsonUrlForLang(lang = this.state.lang) {
+            return localStorage.getItem(`alkitab_remote_json_url_${lang}`) || `./quran-data-${lang}.json`;
+        }
+
+        getStorageOverrideKey(lang = this.state.lang) {
+            return `alkitab_custom_overrides_${lang}`;
+        }
+
+        cacheDom() {
+            this.dom = {
+                surahSelect: document.getElementById("surahSelect"),
+                verseJumpInput: document.getElementById("verseJumpInput"),
+                btnJumpVerse: document.getElementById("btnJumpVerse"),
+                translationSelect: document.getElementById("translationSelect"),
+                btnOpenSearch: document.getElementById("btnOpenSearch"),
+                btnOpenStudio: document.getElementById("btnOpenStudio"),
+                btnFontDec: document.getElementById("btnFontDec"),
+                btnFontInc: document.getElementById("btnFontInc"),
+                fontSizeDisplay: document.getElementById("fontSizeDisplay"),
+                currentSurahTitle: document.getElementById("currentSurahTitle"),
+                currentSurahSub: document.getElementById("currentSurahSub"),
+                bismillahContainer: document.getElementById("bismillahContainer"),
+                versesViewport: document.getElementById("versesViewport"),
+                versesContainer: document.getElementById("versesContainer"),
+                uiPwaStatus: document.getElementById("uiPwaStatus"),
+                navHistoryBar: document.getElementById("navHistoryBar"),
+                btnNavBack: document.getElementById("btnNavBack"),
+                navHistoryTrail: document.getElementById("navHistoryTrail"),
+                btnNavForward: document.getElementById("btnNavForward"),
+                // Search Modal
+                searchModal: document.getElementById("searchModal"),
+                searchInput: document.getElementById("searchInput"),
+                btnCloseSearch: document.getElementById("btnCloseSearch"),
+                chkSearchArabic: document.getElementById("chkSearchArabic"),
+                chkSearchTranslation: document.getElementById("chkSearchTranslation"),
+                chkSearchNotes: document.getElementById("chkSearchNotes"),
+                chkSearchAllTracks: document.getElementById("chkSearchAllTracks"),
+                searchResultsCount: document.getElementById("searchResultsCount"),
+                searchResultsList: document.getElementById("searchResultsList"),
+                // Studio Modal
+                studioModal: document.getElementById("studioModal"),
+                btnCloseStudio: document.getElementById("btnCloseStudio"),
+                btnCloseStudioFooter: document.getElementById("btnCloseStudioFooter"),
+                allSurahCatalogSelect: document.getElementById("allSurahCatalogSelect"),
+                btnScaffoldSurah: document.getElementById("btnScaffoldSurah"),
+                btnScaffoldAll114: document.getElementById("btnScaffoldAll114"),
+                btnCloneSuleymaniyeToCustom: document.getElementById("btnCloneSuleymaniyeToCustom"),
+                remoteJsonUrlInput: document.getElementById("remoteJsonUrlInput"),
+                btnSaveRemoteUrl: document.getElementById("btnSaveRemoteUrl"),
+                fileImportJson: document.getElementById("fileImportJson"),
+                studioSurahSelect: document.getElementById("studioSurahSelect"),
+                studioVerseSelect: document.getElementById("studioVerseSelect"),
+                studioTrackSelect: document.getElementById("studioTrackSelect"),
+                studioTranslationInput: document.getElementById("studioTranslationInput"),
+                studioNotesInput: document.getElementById("studioNotesInput"),
+                btnSaveCustomVerse: document.getElementById("btnSaveCustomVerse"),
+                btnCopyJsonExport: document.getElementById("btnCopyJsonExport"),
+                btnDownloadJson: document.getElementById("btnDownloadJson"),
+                btnResetLocalOverrides: document.getElementById("btnResetLocalOverrides"),
+                jsonExportPreview: document.getElementById("jsonExportPreview"),
+                // Info Modal & Toast
+                infoModal: document.getElementById("infoModal"),
+                infoModalTitle: document.getElementById("infoModalTitle"),
+                infoModalBody: document.getElementById("infoModalBody"),
+                btnCloseInfo: document.getElementById("btnCloseInfo"),
+                btnCloseInfoBtn: document.getElementById("btnCloseInfoBtn"),
+                btnOpenGuide: document.getElementById("btnOpenGuide"),
+                btnOpenPrivacy: document.getElementById("btnOpenPrivacy"),
+                toastBanner: document.getElementById("toastBanner"),
+                toastMessage: document.getElementById("toastMessage"),
+                toastActionBtn: document.getElementById("toastActionBtn"),
+                toastCloseBtn: document.getElementById("toastCloseBtn")
+            };
+        }
+
+        /**
+         * ====================================================================
+         * 3. GIT / CLOUDFLARE PAGES JSON SYNC & LOCALSTORAGE PERSISTENCE
+         * ====================================================================
+         */
+        async tryLoadExternalJson() {
+            const langFile = this.getDefaultJsonFilename(this.state.lang);
+            const configuredUrl = (this.state.remoteJsonUrl || `./${langFile}`).trim();
+            const candidateUrls = configuredUrl === `./${langFile}`
+                ? [`./${langFile}`, "./quran-data.json"]
+                : [configuredUrl, `./${langFile}`, "./quran-data.json"];
+
+            for (const targetUrl of candidateUrls) {
+                try {
+                    const sep = targetUrl.includes("?") ? "&" : "?";
+                    const resp = await fetch(`${targetUrl}${sep}v=${Date.now()}`, { cache: "no-store" });
+                    if (!resp.ok) continue;
+                    const externalDb = await resp.json();
+                    if (externalDb && Array.isArray(externalDb.surahs) && externalDb.surahs.length > 0) {
+                        this.db = externalDb;
+                        this.loadCustomOverridesFromStorage();
+                        this.state.externalJsonLoaded = true;
+                        this.populateSurahDropdowns();
+                        this.populateAll114CatalogSelect();
+                        this.syncTranslationDropdown();
+                        this.renderSurah();
+                        this.dom.uiPwaStatus.textContent = this.state.lang === "tr"
+                            ? `Git JSON Aktif: ${targetUrl.replace("./", "")} (${this.db.surahs.length} Sure)`
+                            : `Git JSON Active: ${targetUrl.replace("./", "")} (${this.db.surahs.length} Surahs)`;
+                        return true;
+                    }
+                } catch (err) {
+                    // Try next fallback candidate
+                }
+            }
+
+            this.dom.uiPwaStatus.textContent = this.state.lang === "tr"
+                ? `Çevrimdışı Hazır (${this.db.surahs.length} Yerel Sure • ${langFile})`
+                : `Offline Ready (${this.db.surahs.length} Local Surahs • ${langFile})`;
+            return false;
+        }
+
+        loadCustomOverridesFromStorage() {
+            try {
+                const raw = localStorage.getItem(this.getStorageOverrideKey(this.state.lang))
+                    || (this.state.lang === "tr" ? localStorage.getItem("alkitab_custom_overrides") : null);
+                if (!raw) return;
+                const savedDb = JSON.parse(raw);
+                if (savedDb && Array.isArray(savedDb.surahs) && savedDb.surahs.length > 0) {
+                    this.db = savedDb;
+                }
+            } catch (e) {
+                console.warn("Storage read skipped:", e);
+            }
+        }
+
+        saveDbToStorage() {
+            try {
+                localStorage.setItem(this.getStorageOverrideKey(this.state.lang), JSON.stringify(this.db));
+            } catch (e) {
+                console.warn("Storage write skipped:", e);
+            }
+        }
+
+        /**
+         * ====================================================================
+         * 4. THEME, FONT SCALE, NOTES HEIGHT & BILINGUAL UI (TR / EN)
+         * ====================================================================
+         */
+        applyTheme(theme) {
+            this.state.theme = theme;
+            localStorage.setItem("alkitab_theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+            document.querySelectorAll("[data-theme-set]").forEach(btn => {
+                btn.classList.toggle("active", btn.getAttribute("data-theme-set") === theme);
+            });
+        }
+
+        applyFontScale(scale) {
+            const clamped = Math.min(150, Math.max(80, scale));
+            this.state.fontScale = clamped;
+            localStorage.setItem("alkitab_font", String(clamped));
+            this.dom.fontSizeDisplay.textContent = `${clamped}%`;
+            this.renderSurah();
+        }
+
+        applyNotesHeightPreset(preset) {
+            this.state.notesHeight = preset;
+            localStorage.setItem("alkitab_notes_h", preset);
+            if (preset !== "full") {
+                document.documentElement.style.setProperty("--section-max-h", preset);
+            }
+            document.querySelectorAll("[data-notes-h]").forEach(btn => {
+                btn.classList.toggle("active", btn.getAttribute("data-notes-h") === preset);
+            });
+            document.querySelectorAll(".section-scroll-box").forEach(box => {
+                box.classList.toggle("section-unbounded", preset === "full");
+            });
+        }
+
+        async applyLanguage(lang, reloadData = true) {
+            const langChanged = this.state.lang !== lang;
+            this.state.lang = lang;
+            localStorage.setItem("alkitab_lang", lang);
+            document.documentElement.setAttribute("lang", lang);
+
+            this.state.remoteJsonUrl = this.getRemoteJsonUrlForLang(lang);
+            if (this.dom.btnDownloadJson) {
+                this.dom.btnDownloadJson.textContent = lang === "tr"
+                    ? `${this.getDefaultJsonFilename(lang)} İndir`
+                    : `Download ${this.getDefaultJsonFilename(lang)}`;
+            }
+
+            document.querySelectorAll("[data-lang-set]").forEach(btn => {
+                btn.classList.toggle("active", btn.getAttribute("data-lang-set") === lang);
+            });
+
+            const dict = {
+                tr: {
+                    subtitle: "Kur'an Okuma ve Araştırma",
+                    ayah: "Ayet:",
+                    search: "Kapsamlı Arama",
+                    studio: "Not / Meal Ekle",
+                    nhS: "Boy:S",
+                    nhM: "Boy:M",
+                    nhL: "Boy:L",
+                    nhFull: "Tam",
+                    nhTitle: "Bölüm Kutusu Yüksekliği (Arapça, Meal ve Notlar — sağ alt köşeden de sürüklenebilir)",
+                    colAr: "1. Arapça Metin (Mushaf)",
+                    colTr: "2. Meal ve Dipnot Referansları [1]",
+                    colNote: "3. Numaralı Açıklama ve Notlar",
+                    footerSrc: "Meal Kaynağı:",
+                    searchPlaceholder: "Arapça kelime, meal veya dipnotlarda ara...",
+                    chkAr: "Arapça",
+                    chkTr: "Meal",
+                    chkNotes: "Numaralı Notlar",
+                    chkAll: "Tüm Meallerde Ara",
+                    tip: "Tüm dipnotlar sonuç kartında tam metin olarak gösterilir.",
+                    offline: "İstemci Tarafı Anlık Arama"
+                },
+                en: {
+                    subtitle: "Quran Reading & Research",
+                    ayah: "Verse:",
+                    search: "Extended Search",
+                    studio: "Add Note / Trans.",
+                    nhS: "Box:S",
+                    nhM: "Box:M",
+                    nhL: "Box:L",
+                    nhFull: "Full",
+                    nhTitle: "Section Box Height (Arabic, Translation & Notes — also drag-resizable from bottom-right corner)",
+                    colAr: "1. Arabic Text (Uthmani)",
+                    colTr: "2. Translation & Footnote Refs [1]",
+                    colNote: "3. Numbered Notes & Commentary",
+                    footerSrc: "Translation Origin:",
+                    searchPlaceholder: "Search Arabic roots, translations, or footnotes...",
+                    chkAr: "Arabic",
+                    chkTr: "Translation",
+                    chkNotes: "Numbered Notes",
+                    chkAll: "Search All Tracks",
+                    tip: "All numbered footnotes are displayed in full inside search cards.",
+                    offline: "Instant Client-Side Search"
+                }
+            };
+
+            const t = dict[lang] || dict.tr;
+            document.getElementById("uiSubtitle").textContent = t.subtitle;
+            document.getElementById("uiLabelAyah").textContent = t.ayah;
+            document.getElementById("uiBtnSearch").textContent = t.search;
+            document.getElementById("uiBtnStudio").textContent = t.studio;
+            const nhCompact = document.getElementById("nhCompact");
+            if (nhCompact) {
+                nhCompact.textContent = t.nhS;
+                document.getElementById("nhStandard").textContent = t.nhM;
+                document.getElementById("nhTall").textContent = t.nhL;
+                document.getElementById("nhFull").textContent = t.nhFull;
+                if (nhCompact.parentElement) nhCompact.parentElement.title = t.nhTitle;
+            }
+            document.getElementById("colHeadArabic").textContent = t.colAr;
+            document.getElementById("colHeadTrans").textContent = t.colTr;
+            document.getElementById("colHeadNotes").textContent = t.colNote;
+            document.getElementById("uiFooterSource").textContent = t.footerSrc;
+            this.dom.searchInput.placeholder = t.searchPlaceholder;
+            document.getElementById("uiChkAr").textContent = t.chkAr;
+            document.getElementById("uiChkTr").textContent = t.chkTr;
+            document.getElementById("uiChkNotes").textContent = t.chkNotes;
+            document.getElementById("uiChkAllTracks").textContent = t.chkAll;
+            document.getElementById("uiSearchTip").textContent = t.tip;
+            document.getElementById("uiSearchOffline").textContent = t.offline;
+
+            if (reloadData && langChanged) {
+                this.db = JSON.parse(JSON.stringify(DEFAULT_QURAN_DB));
+                this.loadCustomOverridesFromStorage();
+                this.populateSurahDropdowns();
+                this.populateAll114CatalogSelect();
+                this.syncTranslationDropdown();
+                this.renderSurah();
+                await this.tryLoadExternalJson();
+            } else {
+                this.populateSurahDropdowns();
+                this.syncTranslationDropdown();
+                this.renderSurah();
+            }
+        }
+
+        /**
+         * ====================================================================
+         * 5. DROPDOWNS & 114-SURAH SCAFFOLDING
+         * ====================================================================
+         */
+        populateSurahDropdowns() {
+            const selects = [this.dom.surahSelect, this.dom.studioSurahSelect];
+            selects.forEach(sel => {
+                if (!sel) return;
+                while (sel.firstChild) sel.removeChild(sel.firstChild);
+                this.db.surahs.forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = String(s.id);
+                    const displayName = this.state.lang === "tr" ? (s.nameTr || s.name) : s.name;
+                    opt.textContent = `${s.id}. ${displayName} (${s.arabicName})`;
+                    sel.appendChild(opt);
+                });
+            });
+            if (!this.db.surahs.some(s => s.id === this.state.surahId) && this.db.surahs.length > 0) {
+                this.state.surahId = this.db.surahs[0].id;
+            }
+            this.dom.surahSelect.value = String(this.state.surahId);
+        }
+
+        populateAll114CatalogSelect() {
+            const sel = this.dom.allSurahCatalogSelect;
+            if (!sel) return;
+            while (sel.firstChild) sel.removeChild(sel.firstChild);
+            ALL_114_SURAHS_CATALOG.forEach(([id, en, tr, ar, count]) => {
+                const existing = this.db.surahs.find(s => s.id === id);
+                const opt = document.createElement("option");
+                opt.value = String(id);
+                const label = this.state.lang === "tr" ? tr : en;
+                let statusTag = "";
+                if (existing) {
+                    statusTag = existing.verses.length >= count
+                        ? " ✓ (Tam)"
+                        : ` (${existing.verses.length}/${count} Ayet)`;
+                }
+                opt.textContent = `${id}. ${label} (${ar}) — ${count} Ayet${statusTag}`;
+                sel.appendChild(opt);
+            });
+        }
+
+        syncTranslationDropdown() {
+            const sel = this.dom.translationSelect;
+            if (!sel) return;
+            while (sel.firstChild) sel.removeChild(sel.firstChild);
+            const meta = this.db.translationsMeta || DEFAULT_QURAN_DB.translationsMeta;
+            Object.keys(meta).forEach(key => {
+                const item = meta[key];
+                const opt = document.createElement("option");
+                opt.value = key;
+                opt.textContent = this.state.lang === "tr" ? (item.labelTr || key) : (item.labelEn || key);
+                sel.appendChild(opt);
+            });
+            if (!meta[this.state.trackId]) {
+                this.state.trackId = Object.keys(meta)[0] || "suleymaniye";
+            }
+            sel.value = this.state.trackId;
+        }
+
+        scaffoldSurahById(surahId, silent = false) {
+            const meta = ALL_114_SURAHS_CATALOG.find(item => item[0] === surahId);
+            if (!meta) return false;
+
+            const [id, en, tr, ar, count, revTr, revEn] = meta;
+            let targetSurah = this.db.surahs.find(s => s.id === id);
+
+            if (!targetSurah) {
+                targetSurah = {
+                    id,
+                    name: en,
+                    nameTr: tr,
+                    arabicName: ar,
+                    revelationTypeTr: revTr,
+                    revelationTypeEn: revEn,
+                    versesCount: count,
+                    bismillahPre: id !== 1 && id !== 9,
+                    verses: []
+                };
+                this.db.surahs.push(targetSurah);
+                this.db.surahs.sort((a, b) => a.id - b.id);
+            }
+
+            const existingNums = new Set(targetSurah.verses.map(v => v.number));
+            let addedCount = 0;
+            for (let v = 1; v <= count; v++) {
+                if (!existingNums.has(v)) {
+                    targetSurah.verses.push({
+                        number: v,
+                        arabic: "",
+                        tracks: {
+                            suleymaniye: { text: "", notes: {} },
+                            custom: { text: "", notes: {} }
+                        }
+                    });
+                    addedCount++;
+                }
+            }
+            targetSurah.verses.sort((a, b) => a.number - b.number);
+
+            if (!silent) {
+                this.saveDbToStorage();
+                this.populateSurahDropdowns();
+                this.populateAll114CatalogSelect();
+                this.refreshJsonPreview();
+                if (this.state.surahId === id) {
+                    this.renderSurah();
+                }
+                this.showToast(
+                    addedCount > 0
+                        ? `${id}. ${tr} suresine ${addedCount} eksik ayet şablonu eklendi (Toplam: ${count}).`
+                        : `${id}. ${tr} suresinin tüm ${count} ayeti zaten mevcut.`
+                );
+            }
+            return addedCount > 0;
+        }
+
+        scaffoldAll114Surahs() {
+            let updatedSurahs = 0;
+            for (const [id] of ALL_114_SURAHS_CATALOG) {
+                if (this.scaffoldSurahById(id, true)) {
+                    updatedSurahs++;
+                }
+            }
+            this.saveDbToStorage();
+            this.populateSurahDropdowns();
+            this.populateAll114CatalogSelect();
+            this.refreshJsonPreview();
+            this.renderSurah();
+            this.showToast(`114 surenin tamamı şablonlandı (${updatedSurahs} sure güncellendi).`);
+        }
+
+        /**
+         * ====================================================================
+         * 6. RENDERING: 3-SECTION SYNCHRONIZED LAYOUT + FOOTNOTE & XREF PARSER
+         * ====================================================================
+         */
+        renderSurah() {
+            const surah = this.db.surahs.find(s => s.id === this.state.surahId) || this.db.surahs[0];
+            if (!surah) return;
+
+            this.state.surahId = surah.id;
+            this.dom.surahSelect.value = String(surah.id);
+            this.dom.verseJumpInput.max = String(surah.versesCount || surah.verses.length);
+
+            const displayName = this.state.lang === "tr" ? (surah.nameTr || surah.name) : surah.name;
+            const revType = this.state.lang === "tr" ? surah.revelationTypeTr : surah.revelationTypeEn;
+            const meta = (this.db.translationsMeta && this.db.translationsMeta[this.state.trackId]) || {};
+            const trackLabel = this.state.lang === "tr" ? (meta.labelTr || this.state.trackId) : (meta.labelEn || this.state.trackId);
+
+            this.dom.currentSurahTitle.textContent = `${surah.id}. ${displayName} (${surah.arabicName})`;
+            this.dom.currentSurahSub.textContent = this.state.lang === "tr"
+                ? `${revType} • ${surah.versesCount} Ayet • Aktif Meal: ${trackLabel}`
+                : `${revType} • ${surah.versesCount} Verses • Active Track: ${trackLabel}`;
+
+            this.dom.bismillahContainer.style.display = surah.bismillahPre ? "block" : "none";
+
+            const container = this.dom.versesContainer;
+            while (container.firstChild) container.removeChild(container.firstChild);
+
+            const arFontPx = (1.65 * (this.state.fontScale / 100)).toFixed(2);
+            const trFontPx = (0.95 * (this.state.fontScale / 100)).toFixed(2);
+            const isUnbounded = this.state.notesHeight === "full";
+
+            surah.verses.forEach(verse => {
+                const card = document.createElement("article");
+                card.className = "verse-card";
+                card.id = `verse-${surah.id}-${verse.number}`;
+                if (verse.number === this.state.activeVerseNum) {
+                    card.classList.add("active-verse");
+                }
+
+                // --- SECTION 1: ARABIC ---
+                const secAr = document.createElement("div");
+                secAr.className = "sec-arabic";
+                secAr.setAttribute("data-col", "arabic");
+
+                const arTop = document.createElement("div");
+                arTop.className = "sec-arabic-top";
+
+                const badge = document.createElement("span");
+                badge.className = "ayah-badge";
+                badge.textContent = `${surah.id}:${verse.number}`;
+
+                const actions = document.createElement("div");
+                actions.className = "verse-actions";
+
+                const btnCopy = document.createElement("button");
+                btnCopy.type = "button";
+                btnCopy.className = "btn btn-xs";
+                btnCopy.textContent = this.state.lang === "tr" ? "Kopyala" : "Copy";
+                btnCopy.title = this.state.lang === "tr" ? "Arapça ve Meali kopyala" : "Copy Arabic & Translation";
+                btnCopy.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.copyVerseText(surah, verse, false);
+                });
+
+                const btnCopyWithNotes = document.createElement("button");
+                btnCopyWithNotes.type = "button";
+                btnCopyWithNotes.className = "btn btn-xs";
+                btnCopyWithNotes.textContent = this.state.lang === "tr" ? "+Not" : "+Notes";
+                btnCopyWithNotes.title = this.state.lang === "tr" ? "Arapça, Meal ve Dipnotlarla birlikte kopyala" : "Copy Arabic, Translation & Footnotes";
+                btnCopyWithNotes.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.copyVerseText(surah, verse, true);
+                });
+
+                const btnEdit = document.createElement("button");
+                btnEdit.type = "button";
+                btnEdit.className = "btn btn-xs";
+                btnEdit.textContent = "✎";
+                btnEdit.title = this.state.lang === "tr" ? "Bu ayetin meal/notunu düzenle" : "Edit verse note";
+                btnEdit.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.openStudioModal(surah.id, verse.number);
+                });
+
+                actions.appendChild(btnCopy);
+                actions.appendChild(btnCopyWithNotes);
+                actions.appendChild(btnEdit);
+                arTop.appendChild(badge);
+                arTop.appendChild(actions);
+
+                const arScroll = document.createElement("div");
+                arScroll.className = "section-scroll-box" + (isUnbounded ? " section-unbounded" : "");
+
+                const arP = document.createElement("p");
+                arP.className = "arabic-text";
+                arP.style.fontSize = `${arFontPx}rem`;
+                arP.textContent = verse.arabic || (this.state.lang === "tr" ? "(Arapça metin henüz eklenmedi)" : "(Arabic text pending)");
+
+                arScroll.appendChild(arP);
+                secAr.appendChild(arTop);
+                secAr.appendChild(arScroll);
+
+                // --- SECTION 2: TRANSLATION WITH INLINE SUPERSCRIPT REFS ---
+                const rawTrack = (verse.tracks && verse.tracks[this.state.trackId]) || { text: "", notes: {} };
+                const fallbackTrack = (verse.tracks && verse.tracks.suleymaniye) || { text: "", notes: {} };
+                const isFallbackUsed = this.state.trackId !== "suleymaniye" && !rawTrack.text && Boolean(fallbackTrack.text);
+                const trackData = isFallbackUsed ? fallbackTrack : rawTrack;
+
+                const secTr = document.createElement("div");
+                secTr.className = "sec-translation";
+                secTr.setAttribute("data-col", "translation");
+
+                const trLabel = document.createElement("div");
+                trLabel.className = "sec-label";
+                const trLabelText = document.createElement("span");
+                trLabelText.textContent = trackLabel;
+                trLabel.appendChild(trLabelText);
+
+                if (isFallbackUsed) {
+                    const fbBadge = document.createElement("span");
+                    fbBadge.style.fontSize = "0.66rem";
+                    fbBadge.style.color = "var(--text-muted)";
+                    fbBadge.textContent = this.state.lang === "tr" ? "(Süleymaniye Yedeği)" : "(Süleymaniye Fallback)";
+                    trLabel.appendChild(fbBadge);
+                }
+
+                const trScroll = document.createElement("div");
+                trScroll.className = "section-scroll-box" + (isUnbounded ? " section-unbounded" : "");
+
+                const trBody = document.createElement("div");
+                trBody.className = "translation-body";
+                trBody.style.fontSize = `${trFontPx}rem`;
+
+                if (trackData.text) {
+                    this.appendRichTextWithRefs(trBody, trackData.text, surah.id, verse.number);
+                } else {
+                    const emptySpan = document.createElement("span");
+                    emptySpan.style.color = "var(--text-muted)";
+                    emptySpan.style.fontStyle = "italic";
+                    emptySpan.textContent = this.state.lang === "tr"
+                        ? "Bu ayet için henüz meal girilmemiş. Düzenlemek için ✎ simgesine tıklayın."
+                        : "No translation entered yet for this verse. Click ✎ to add.";
+                    trBody.appendChild(emptySpan);
+                }
+
+                trScroll.appendChild(trBody);
+                secTr.appendChild(trLabel);
+                secTr.appendChild(trScroll);
+
+                // --- SECTION 3: NUMBERED FOOTNOTES WITH CROSS-REFERENCES ---
+                const secNotes = document.createElement("div");
+                secNotes.className = "sec-notes";
+                secNotes.setAttribute("data-col", "notes");
+
+                const notesLabel = document.createElement("div");
+                notesLabel.className = "sec-label";
+                notesLabel.textContent = this.state.lang === "tr" ? "Numaralı Notlar" : "Numbered Notes";
+
+                const notesScroll = document.createElement("div");
+                notesScroll.className = "section-scroll-box" + (isUnbounded ? " section-unbounded" : "");
+
+                const notesStack = document.createElement("div");
+                notesStack.className = "notes-stack";
+
+                const notesMap = trackData.notes || {};
+                const noteKeys = Object.keys(notesMap).sort((a, b) => Number(a) - Number(b));
+
+                if (noteKeys.length === 0) {
+                    const noNote = document.createElement("div");
+                    noNote.className = "no-notes-msg";
+                    noNote.textContent = this.state.lang === "tr" ? "Bu ayette dipnot bulunmuyor." : "No footnotes for this verse.";
+                    notesStack.appendChild(noNote);
+                } else {
+                    noteKeys.forEach(nKey => {
+                        const noteBox = document.createElement("div");
+                        noteBox.className = "note-item";
+                        noteBox.id = `note-${surah.id}-${verse.number}-${nKey}`;
+
+                        const numBadge = document.createElement("span");
+                        numBadge.className = "note-num-badge";
+                        numBadge.textContent = `[${nKey}]`;
+
+                        noteBox.appendChild(numBadge);
+                        this.appendRichTextWithRefs(noteBox, notesMap[nKey], surah.id, verse.number);
+
+                        noteBox.addEventListener("click", (e) => {
+                            if (e.target.closest(".verse-xref")) return;
+                            this.highlightFootnotePair(surah.id, verse.number, nKey);
+                        });
+
+                        notesStack.appendChild(noteBox);
+                    });
+                }
+
+                notesScroll.appendChild(notesStack);
+                secNotes.appendChild(notesLabel);
+                secNotes.appendChild(notesScroll);
+
+                card.addEventListener("click", () => {
+                    this.state.activeVerseNum = verse.number;
+                    document.querySelectorAll(".verse-card.active-verse").forEach(el => el.classList.remove("active-verse"));
+                    card.classList.add("active-verse");
+                });
+
+                card.appendChild(secAr);
+                card.appendChild(secTr);
+                card.appendChild(secNotes);
+                container.appendChild(card);
+            });
+
+            this.applyMobileColumnFilter();
+        }
+
+        /**
+         * Parses `[1]` footnote markers and `[Rum 30:30]` / `[30:30]` verse cross-references
+         * using 100% safe DOM node creation (zero innerHTML).
+         */
+        appendRichTextWithRefs(targetEl, rawText, currentSurahId, currentVerseNum, highlightQuery = "") {
+            if (!rawText) return;
+            const tokenRegex = /\[([^\[\]]+)\]/g;
+            let lastIdx = 0;
+            let match;
+
+            while ((match = tokenRegex.exec(rawText)) !== null) {
+                if (match.index > lastIdx) {
+                    this.appendHighlightedTextNode(targetEl, rawText.slice(lastIdx, match.index), highlightQuery);
+                }
+
+                const inside = match[1].trim();
+                if (/^\d{1,2}$/.test(inside)) {
+                    const sup = document.createElement("sup");
+                    sup.className = "fn-ref";
+                    sup.setAttribute("data-fn", `${currentSurahId}-${currentVerseNum}-${inside}`);
+                    sup.textContent = `[${inside}]`;
+                    sup.title = this.state.lang === "tr" ? `${inside}. dipnota git` : `Jump to note ${inside}`;
+                    sup.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        this.highlightFootnotePair(currentSurahId, currentVerseNum, inside);
+                    });
+                    targetEl.appendChild(sup);
+                } else {
+                    const parsedRef = this.parseVerseReference(inside);
+                    if (parsedRef) {
+                        const xrefBtn = document.createElement("button");
+                        xrefBtn.type = "button";
+                        xrefBtn.className = "verse-xref";
+                        xrefBtn.textContent = `↗ ${inside}`;
+                        xrefBtn.title = this.state.lang === "tr"
+                            ? `${parsedRef.surahId}:${parsedRef.verseNum} ayetine git`
+                            : `Jump to ${parsedRef.surahId}:${parsedRef.verseNum}`;
+                        xrefBtn.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            this.navigateToCrossReference(
+                                { surahId: currentSurahId, verseNum: currentVerseNum },
+                                { surahId: parsedRef.surahId, verseNum: parsedRef.verseNum }
+                            );
+                        });
+                        targetEl.appendChild(xrefBtn);
+                    } else {
+                        this.appendHighlightedTextNode(targetEl, match[0], highlightQuery);
+                    }
+                }
+                lastIdx = tokenRegex.lastIndex;
+            }
+
+            if (lastIdx < rawText.length) {
+                this.appendHighlightedTextNode(targetEl, rawText.slice(lastIdx), highlightQuery);
+            }
+        }
+
+        appendHighlightedTextNode(targetEl, textSegment, query) {
+            if (!textSegment) return;
+            if (!query || query.length < 2) {
+                targetEl.appendChild(document.createTextNode(textSegment));
+                return;
+            }
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const splitRegex = new RegExp(`(${escaped})`, "gi");
+            const parts = textSegment.split(splitRegex);
+            parts.forEach(part => {
+                if (!part) return;
+                if (part.toLowerCase() === query.toLowerCase()) {
+                    const mark = document.createElement("mark");
+                    mark.className = "hl";
+                    mark.textContent = part;
+                    targetEl.appendChild(mark);
+                } else {
+                    targetEl.appendChild(document.createTextNode(part));
+                }
+            });
+        }
+
+        parseVerseReference(token) {
+            const m = token.match(/^(?:(.+?)\s+)?(\d{1,3})\s*[:/]\s*(\d{1,3})$/);
+            if (!m) return null;
+            const rawName = m[1];
+            const surahId = parseInt(m[2], 10);
+            const verseNum = parseInt(m[3], 10);
+            if (surahId < 1 || surahId > 114 || verseNum < 1) return null;
+            if (rawName) {
+                const resolved = resolveSurahIdByName(rawName);
+                if (resolved !== null && resolved !== surahId) {
+                    return null;
+                }
+            }
+            return { surahId, verseNum };
+        }
+
+        highlightFootnotePair(surahId, verseNum, noteKey) {
+            document.querySelectorAll(".note-highlighted").forEach(el => el.classList.remove("note-highlighted"));
+            document.querySelectorAll(".fn-active").forEach(el => el.classList.remove("fn-active"));
+
+            const noteEl = document.getElementById(`note-${surahId}-${verseNum}-${noteKey}`);
+            if (noteEl) {
+                noteEl.classList.add("note-highlighted");
+                noteEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+            document.querySelectorAll(`[data-fn="${surahId}-${verseNum}-${noteKey}"]`).forEach(el => {
+                el.classList.add("fn-active");
+            });
+        }
+
+        /**
+         * ====================================================================
+         * 7. CROSS-REFERENCE NAVIGATION & HISTORY TRAIL (BACK / FORWARD)
+         * ====================================================================
+         */
+        navigateToCrossReference(fromRef, toRef) {
+            if (this.state.navIndex < this.state.navHistory.length - 1) {
+                this.state.navHistory = this.state.navHistory.slice(0, this.state.navIndex + 1);
+            }
+            if (this.state.navHistory.length === 0) {
+                this.state.navHistory.push(fromRef);
+            }
+            this.state.navHistory.push(toRef);
+            this.state.navIndex = this.state.navHistory.length - 1;
+            this.updateNavHistoryUi();
+            this.focusVerse(toRef.surahId, toRef.verseNum, true);
+        }
+
+        navigateHistory(delta) {
+            const nextIdx = this.state.navIndex + delta;
+            if (nextIdx < 0 || nextIdx >= this.state.navHistory.length) return;
+            this.state.navIndex = nextIdx;
+            const target = this.state.navHistory[nextIdx];
+            this.updateNavHistoryUi();
+            this.focusVerse(target.surahId, target.verseNum, true);
+        }
+
+        updateNavHistoryUi() {
+            const hist = this.state.navHistory;
+            if (hist.length <= 1) {
+                this.dom.navHistoryBar.classList.add("hidden");
+                return;
+            }
+            this.dom.navHistoryBar.classList.remove("hidden");
+            this.dom.btnNavBack.disabled = this.state.navIndex <= 0;
+            this.dom.btnNavForward.disabled = this.state.navIndex >= hist.length - 1;
+            const current = hist[this.state.navIndex];
+            const prev = this.state.navIndex > 0 ? hist[this.state.navIndex - 1] : null;
+            this.dom.navHistoryTrail.textContent = prev
+                ? `${prev.surahId}:${prev.verseNum} → ${current.surahId}:${current.verseNum}`
+                : `${current.surahId}:${current.verseNum}`;
+        }
+
+        focusVerse(surahId, verseNum, pulse = false) {
+            const surah = this.db.surahs.find(s => s.id === surahId);
+            if (!surah) {
+                const catalogEntry = ALL_114_SURAHS_CATALOG.find(item => item[0] === surahId);
+                const sLabel = catalogEntry ? (this.state.lang === "tr" ? catalogEntry[2] : catalogEntry[1]) : `Surah ${surahId}`;
+                this.showToast(
+                    this.state.lang === "tr"
+                        ? `${surahId}. ${sLabel} (${surahId}:${verseNum}) henüz JSON dosyasında yüklü değil.`
+                        : `${surahId}. ${sLabel} (${surahId}:${verseNum}) is not loaded in JSON yet.`,
+                    this.state.lang === "tr" ? "Sureyi Şablonla" : "Scaffold Surah",
+                    () => {
+                        this.scaffoldSurahById(surahId, false);
+                        this.focusVerse(surahId, verseNum, pulse);
+                    }
+                );
+                return;
+            }
+
+            if (this.state.surahId !== surahId) {
+                this.state.surahId = surahId;
+                this.state.activeVerseNum = verseNum;
+                this.renderSurah();
+            } else {
+                this.state.activeVerseNum = verseNum;
+                document.querySelectorAll(".verse-card.active-verse").forEach(el => el.classList.remove("active-verse"));
+            }
+
+            requestAnimationFrame(() => {
+                const targetCard = document.getElementById(`verse-${surahId}-${verseNum}`);
+                if (targetCard) {
+                    targetCard.classList.add("active-verse");
+                    if (pulse) {
+                        targetCard.classList.remove("xref-pulse");
+                        void targetCard.offsetWidth;
+                        targetCard.classList.add("xref-pulse");
+                    }
+                    this.fastScrollToElement(targetCard, 350);
+                }
+            });
+        }
+
+        fastScrollToElement(targetEl, durationMs = 350) {
+            const viewport = this.dom.versesViewport;
+            if (!viewport || !targetEl) return;
+
+            const vpRect = viewport.getBoundingClientRect();
+            const elRect = targetEl.getBoundingClientRect();
+            const offsetInVp = elRect.top - vpRect.top;
+            const targetScrollTop = Math.max(
+                0,
+                viewport.scrollTop + offsetInVp - (vpRect.height / 2) + (elRect.height / 2)
+            );
+
+            const distance = targetScrollTop - viewport.scrollTop;
+            // For very long jumps (> 1.5x viewport), snap close first so the glide finishes in <= 350ms
+            if (Math.abs(distance) > vpRect.height * 1.5) {
+                viewport.scrollTop = targetScrollTop - Math.sign(distance) * (vpRect.height * 0.45);
+            }
+
+            const startScroll = viewport.scrollTop;
+            const delta = targetScrollTop - startScroll;
+            if (Math.abs(delta) < 2) {
+                viewport.scrollTop = targetScrollTop;
+                return;
+            }
+
+            const startTime = performance.now();
+            const step = (now) => {
+                const elapsed = now - startTime;
+                const progress = Math.min(1, elapsed / durationMs);
+                // Smooth cubic ease-out
+                const eased = 1 - Math.pow(1 - progress, 3);
+                viewport.scrollTop = startScroll + delta * eased;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            };
+            requestAnimationFrame(step);
+        }
+
+        applyMobileColumnFilter() {
+            const isMobile = window.innerWidth <= 960;
+            const tab = this.state.mobileTab;
+            document.querySelectorAll("[data-col]").forEach(el => {
+                if (!isMobile || tab === "all") {
+                    el.style.display = "";
+                } else {
+                    el.style.display = el.getAttribute("data-col") === tab ? "" : "none";
+                }
+            });
+        }
+
+        /**
+         * ====================================================================
+         * 8. COPY VERSE (WITH OR WITHOUT NOTES) & EXTENDED SEARCH POP-UP
+         * ====================================================================
+         */
+        copyVerseText(surah, verse, includeNotes = false) {
+            const rawTrack = (verse.tracks && verse.tracks[this.state.trackId]) || { text: "", notes: {} };
+            const fallbackTrack = (verse.tracks && verse.tracks.suleymaniye) || { text: "", notes: {} };
+            const trackData = (this.state.trackId !== "suleymaniye" && !rawTrack.text && fallbackTrack.text)
+                ? fallbackTrack
+                : rawTrack;
+
+            const sName = this.state.lang === "tr" ? (surah.nameTr || surah.name) : surah.name;
+            const lines = [
+                `${sName} ${surah.id}:${verse.number}`,
+                verse.arabic,
+                trackData.text || ""
+            ];
+
+            if (includeNotes) {
+                const notesMap = trackData.notes || {};
+                const noteKeys = Object.keys(notesMap).sort((a, b) => Number(a) - Number(b));
+                if (noteKeys.length > 0) {
+                    lines.push("");
+                    lines.push(this.state.lang === "tr" ? "--- Dipnotlar ---" : "--- Footnotes ---");
+                    noteKeys.forEach(k => {
+                        lines.push(`[${k}] ${notesMap[k]}`);
+                    });
+                }
+            }
+
+            this.copyStringToClipboard(lines.join("\n"));
+            const suffix = includeNotes
+                ? (this.state.lang === "tr" ? " (dipnotlarla birlikte)" : " (with footnotes)")
+                : "";
+            this.showToast(
+                this.state.lang === "tr"
+                    ? `${surah.id}:${verse.number}${suffix} panoya kopyalandı.`
+                    : `Copied ${surah.id}:${verse.number}${suffix} to clipboard.`
+            );
+        }
+
+        copyStringToClipboard(str) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(str).catch(() => {});
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = str;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+            }
+        }
+
+        normalizeArabic(str) {
+            if (!str) return "";
+            return str
+                .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+                .replace(/[أإآٱ]/g, "ا")
+                .replace(/ى/g, "ي")
+                .replace(/ة/g, "ه");
+        }
+
+        openSearchModal() {
+            this.dom.searchModal.classList.remove("hidden");
+            this.dom.searchInput.focus();
+            this.runSearch();
+        }
+
+        runSearch() {
+            const rawQuery = this.dom.searchInput.value.trim();
+            const listEl = this.dom.searchResultsList;
+            while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+
+            if (rawQuery.length < 2) {
+                this.dom.searchResultsCount.textContent = this.state.lang === "tr" ? "En az 2 karakter yazın" : "Type at least 2 chars";
+                return;
+            }
+
+            const searchAr = this.dom.chkSearchArabic.checked;
+            const searchTr = this.dom.chkSearchTranslation.checked;
+            const searchNotes = this.dom.chkSearchNotes.checked;
+            const searchAllTracks = this.dom.chkSearchAllTracks.checked;
+
+            const qLower = rawQuery.toLowerCase();
+            const qNormAr = this.normalizeArabic(rawQuery);
+            const isArabicQuery = /[\u0600-\u06FF]/.test(rawQuery);
+
+            const tracksToCheck = searchAllTracks
+                ? Object.keys(this.db.translationsMeta || { suleymaniye: 1, custom: 1 })
+                : [this.state.trackId];
+
+            const results = [];
+
+            for (const surah of this.db.surahs) {
+                for (const verse of surah.verses) {
+                    const matchedIn = new Set();
+
+                    if (searchAr && verse.arabic) {
+                        if (this.normalizeArabic(verse.arabic).includes(qNormAr)) {
+                            matchedIn.add(this.state.lang === "tr" ? "Arapça" : "Arabic");
+                        }
+                    }
+
+                    let matchedTrackId = this.state.trackId;
+                    for (const tId of tracksToCheck) {
+                        const tObj = (verse.tracks && verse.tracks[tId]) || { text: "", notes: {} };
+                        if (searchTr && tObj.text && tObj.text.toLowerCase().includes(qLower)) {
+                            matchedIn.add(this.state.lang === "tr" ? "Meal" : "Translation");
+                            matchedTrackId = tId;
+                        }
+                        if (searchNotes && tObj.notes) {
+                            for (const nVal of Object.values(tObj.notes)) {
+                                if (String(nVal).toLowerCase().includes(qLower)) {
+                                    matchedIn.add(this.state.lang === "tr" ? "Dipnot" : "Footnote");
+                                    matchedTrackId = tId;
+                                }
+                            }
+                        }
+                    }
+
+                    if (matchedIn.size > 0) {
+                        results.push({
+                            surah,
+                            verse,
+                            matchedTrackId,
+                            tags: Array.from(matchedIn)
+                        });
+                    }
+                }
+            }
+
+            this.dom.searchResultsCount.textContent = this.state.lang === "tr"
+                ? `${results.length} sonuç bulundu`
+                : `${results.length} results found`;
+
+            const highlightTerm = isArabicQuery ? "" : rawQuery;
+
+            results.slice(0, 80).forEach(({ surah, verse, matchedTrackId, tags }) => {
+                const card = document.createElement("div");
+                card.className = "search-card";
+
+                const top = document.createElement("div");
+                top.className = "search-card-top";
+
+                const refSpan = document.createElement("span");
+                refSpan.className = "search-surah-ref";
+                const sName = this.state.lang === "tr" ? (surah.nameTr || surah.name) : surah.name;
+                refSpan.textContent = `${surah.id}. ${sName} — ${surah.id}:${verse.number}`;
+
+                const tagsWrap = document.createElement("div");
+                tagsWrap.className = "search-tags";
+                tags.forEach(tg => {
+                    const tagEl = document.createElement("span");
+                    tagEl.className = "match-tag";
+                    tagEl.textContent = tg;
+                    tagsWrap.appendChild(tagEl);
+                });
+
+                const btnGo = document.createElement("button");
+                btnGo.type = "button";
+                btnGo.className = "btn btn-primary btn-xs";
+                btnGo.textContent = this.state.lang === "tr" ? "Ayete Git →" : "Go to Verse →";
+                btnGo.addEventListener("click", () => {
+                    this.dom.searchModal.classList.add("hidden");
+                    if (this.state.trackId !== matchedTrackId) {
+                        this.state.trackId = matchedTrackId;
+                        this.dom.translationSelect.value = matchedTrackId;
+                    }
+                    this.focusVerse(surah.id, verse.number, true);
+                });
+                tagsWrap.appendChild(btnGo);
+
+                top.appendChild(refSpan);
+                top.appendChild(tagsWrap);
+                card.appendChild(top);
+
+                // Arabic line (no <mark> injection so Arabic ligatures never break)
+                if (verse.arabic) {
+                    const arDiv = document.createElement("div");
+                    arDiv.className = "arabic-text";
+                    arDiv.style.fontSize = "1.35rem";
+                    arDiv.textContent = verse.arabic;
+                    card.appendChild(arDiv);
+                }
+
+                // Translation with fallback to Süleymaniye if custom track is empty
+                const primaryTrack = (verse.tracks && verse.tracks[matchedTrackId]) || { text: "", notes: {} };
+                const fallbackTrack = (verse.tracks && verse.tracks.suleymaniye) || { text: "", notes: {} };
+                const effectiveTrack = (matchedTrackId !== "suleymaniye" && !primaryTrack.text && fallbackTrack.text)
+                    ? fallbackTrack
+                    : primaryTrack;
+
+                if (effectiveTrack.text) {
+                    const trDiv = document.createElement("div");
+                    trDiv.className = "translation-body";
+                    trDiv.style.fontSize = "0.9rem";
+                    this.appendRichTextWithRefs(trDiv, effectiveTrack.text, surah.id, verse.number, highlightTerm);
+                    card.appendChild(trDiv);
+                }
+
+                // FULL Numbered Notes displayed directly inside Search Card
+                const notesMap = effectiveTrack.notes || {};
+                const noteKeys = Object.keys(notesMap).sort((a, b) => Number(a) - Number(b));
+                if (noteKeys.length > 0) {
+                    const notesBox = document.createElement("div");
+                    notesBox.className = "search-notes-box";
+
+                    const notesTitle = document.createElement("div");
+                    notesTitle.className = "search-notes-title";
+                    notesTitle.textContent = this.state.lang === "tr" ? "Numaralı Dipnotlar:" : "Numbered Footnotes:";
+                    notesBox.appendChild(notesTitle);
+
+                    noteKeys.forEach(k => {
+                        const row = document.createElement("div");
+                        row.style.fontSize = "0.8rem";
+                        row.style.lineHeight = "1.5";
+                        const b = document.createElement("span");
+                        b.className = "note-num-badge";
+                        b.textContent = `[${k}]`;
+                        row.appendChild(b);
+                        this.appendRichTextWithRefs(row, notesMap[k], surah.id, verse.number, highlightTerm);
+                        notesBox.appendChild(row);
+                    });
+
+                    card.appendChild(notesBox);
+                }
+
+                listEl.appendChild(card);
+            });
+        }
+
+        /**
+         * ====================================================================
+         * 9. CUSTOM TRANSLATION & NOTES STUDIO + JSON IMPORT / EXPORT
+         * ====================================================================
+         */
+        openStudioModal(surahId = this.state.surahId, verseNum = this.state.activeVerseNum) {
+            this.dom.studioModal.classList.remove("hidden");
+            this.dom.remoteJsonUrlInput.value = this.state.remoteJsonUrl || `./${this.getDefaultJsonFilename()}`;
+            this.dom.studioSurahSelect.value = String(surahId);
+            this.dom.studioTrackSelect.value = this.state.trackId;
+            this.populateStudioVerseSelect(surahId, verseNum);
+            this.loadVerseIntoStudioForm();
+            this.refreshJsonPreview();
+        }
+
+        populateStudioVerseSelect(surahId, selectedVerse = 1) {
+            const surah = this.db.surahs.find(s => s.id === surahId);
+            const sel = this.dom.studioVerseSelect;
+            while (sel.firstChild) sel.removeChild(sel.firstChild);
+            if (!surah) return;
+
+            surah.verses.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = String(v.number);
+                opt.textContent = `Ayet ${v.number}`;
+                sel.appendChild(opt);
+            });
+            sel.value = String(selectedVerse);
+        }
+
+        loadVerseIntoStudioForm() {
+            const sId = parseInt(this.dom.studioSurahSelect.value, 10);
+            const vNum = parseInt(this.dom.studioVerseSelect.value, 10);
+            const tId = this.dom.studioTrackSelect.value;
+
+            const surah = this.db.surahs.find(s => s.id === sId);
+            const verse = surah && surah.verses.find(v => v.number === vNum);
+            const trackData = (verse && verse.tracks && verse.tracks[tId]) || { text: "", notes: {} };
+
+            this.dom.studioTranslationInput.value = trackData.text || "";
+            const notesMap = trackData.notes || {};
+            const lines = Object.keys(notesMap)
+                .sort((a, b) => Number(a) - Number(b))
+                .map(k => `${k}: ${notesMap[k]}`);
+            this.dom.studioNotesInput.value = lines.join("\n");
+        }
+
+        saveVerseFromStudioForm() {
+            const sId = parseInt(this.dom.studioSurahSelect.value, 10);
+            const vNum = parseInt(this.dom.studioVerseSelect.value, 10);
+            const tId = this.dom.studioTrackSelect.value;
+
+            const surah = this.db.surahs.find(s => s.id === sId);
+            const verse = surah && surah.verses.find(v => v.number === vNum);
+            if (!verse) return;
+
+            verse.tracks = verse.tracks || {};
+            const parsedNotes = {};
+            const rawLines = this.dom.studioNotesInput.value.split("\n");
+            let autoNum = 1;
+            rawLines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+                const m = trimmed.match(/^(?:\[?(\d{1,2})\]?\s*[:.\-\)]\s*)(.+)$/);
+                if (m) {
+                    parsedNotes[m[1]] = m[2].trim();
+                    autoNum = Math.max(autoNum, parseInt(m[1], 10) + 1);
+                } else {
+                    parsedNotes[String(autoNum++)] = trimmed;
+                }
+            });
+
+            verse.tracks[tId] = {
+                text: this.dom.studioTranslationInput.value.trim(),
+                notes: parsedNotes
+            };
+
+            this.saveDbToStorage();
+            this.refreshJsonPreview();
+            if (this.state.surahId === sId) {
+                this.renderSurah();
+            }
+            this.showToast(`${sId}:${vNum} kaydedildi ve uygulandı.`);
+        }
+
+        cloneSuleymaniyeToCustom() {
+            let copiedCount = 0;
+            this.db.surahs.forEach(surah => {
+                surah.verses.forEach(verse => {
+                    verse.tracks = verse.tracks || {};
+                    const src = verse.tracks.suleymaniye;
+                    const dst = verse.tracks.custom || { text: "", notes: {} };
+                    if (src && src.text && !dst.text) {
+                        verse.tracks.custom = JSON.parse(JSON.stringify(src));
+                        copiedCount++;
+                    }
+                });
+            });
+            this.saveDbToStorage();
+            this.loadVerseIntoStudioForm();
+            this.refreshJsonPreview();
+            this.renderSurah();
+            this.showToast(`${copiedCount} ayet 'Benim Mealim' katmanına kopyalandı.`);
+        }
+
+        refreshJsonPreview() {
+            if (!this.dom.jsonExportPreview) return;
+            const preview = JSON.stringify(this.db, null, 2);
+            this.dom.jsonExportPreview.textContent = preview.length > 6000
+                ? preview.slice(0, 6000) + "\n... (Tamamı için 'JSON İndir' veya 'JSON Kopyala' kullanın)"
+                : preview;
+        }
+
+        downloadJsonFile() {
+            const filename = this.getDefaultJsonFilename(this.state.lang);
+            const jsonStr = JSON.stringify(this.db, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.showToast(`${filename} indirildi. Git deponuza yükleyip Cloudflare Pages üzerinden yayınlayabilirsiniz.`);
+        }
+
+        importJsonFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(String(e.target.result));
+                    if (!imported || !Array.isArray(imported.surahs)) {
+                        this.showToast("Geçersiz JSON formatı: 'surahs' dizisi bulunamadı.");
+                        return;
+                    }
+                    this.db = imported;
+                    this.saveDbToStorage();
+                    this.populateSurahDropdowns();
+                    this.populateAll114CatalogSelect();
+                    this.syncTranslationDropdown();
+                    this.populateStudioVerseSelect(this.state.surahId, 1);
+                    this.loadVerseIntoStudioForm();
+                    this.refreshJsonPreview();
+                    this.renderSurah();
+                    this.showToast(`JSON başarıyla yüklendi (${this.db.surahs.length} sure).`);
+                } catch (err) {
+                    this.showToast("JSON ayrıştırma hatası: Dosya bozuk olabilir.");
+                }
+            };
+            reader.readAsText(file, "utf-8");
+        }
+
+        /**
+         * ====================================================================
+         * 10. TOAST & INFO MODALS
+         * ====================================================================
+         */
+        showToast(message, actionLabel = "", actionCallback = null) {
+            this.dom.toastMessage.textContent = message;
+            if (actionLabel && typeof actionCallback === "function") {
+                this.dom.toastActionBtn.textContent = actionLabel;
+                this.dom.toastActionBtn.classList.remove("hidden");
+                this.dom.toastActionBtn.onclick = () => {
+                    this.dom.toastBanner.classList.add("hidden");
+                    actionCallback();
+                };
+            } else {
+                this.dom.toastActionBtn.classList.add("hidden");
+                this.dom.toastActionBtn.onclick = null;
+            }
+            this.dom.toastBanner.classList.remove("hidden");
+            clearTimeout(this._toastTimer);
+            this._toastTimer = setTimeout(() => {
+                this.dom.toastBanner.classList.add("hidden");
+            }, 6000);
+        }
+
+        openInfoModal(type) {
+            const body = this.dom.infoModalBody;
+            while (body.firstChild) body.removeChild(body.firstChild);
+
+            if (type === "guide") {
+                this.dom.infoModalTitle.textContent = "114 Sure & Git / Cloudflare Pages Rehberi";
+                const items = [
+                    "1. Dil Bazlı JSON Dosyaları: TR seçiliyken 'quran-data-tr.json', EN seçiliyken 'quran-data-en.json' dosyası otomatik yüklenir (yoksa 'quran-data.json' yedeğine geçer).",
+                    "2. Ayetler Arası Atıflar: Notlarınızın içine [Rum 30:30], [Rome 30:30], [İhlas 112:1] veya [30:30] yazdığınızda tıklanabilir atıf rozetleri oluşur ve üst kısımda Geri / İleri gezinme çubuğu açılır.",
+                    "3. Word / Metin Dönüştürücü: Süleymaniye Vakfı'ndan aldığınız metin dosyasını 'build_quran_json.py' betiği ile doğrudan quran-data-tr.json formatına dönüştürebilirsiniz.",
+                    "4. Cloudflare Pages Yayınlama: index.html ve quran-data-tr.json / quran-data-en.json dosyalarını Git deponuza gönderdiğinizde uygulama çevrimdışı PWA olarak çalışır ve her güncellemede yeni sürümü otomatik çeker."
+                ];
+                items.forEach(txt => {
+                    const p = document.createElement("p");
+                    p.textContent = txt;
+                    body.appendChild(p);
+                });
+            } else {
+                this.dom.infoModalTitle.textContent = "Gizlilik & Çevrimdışı PWA Mimarisi";
+                const items = [
+                    "• Sıfır Harici CDN: Tüm stiller, yazı tipi yığınları ve çalışma mantığı tek HTML dosyası içindedir; internet bağlantısı olmadan da tam performansla çalışır.",
+                    "• İstemci Tarafı Depolama: Eklediğiniz özel mealler ve notlar tarayıcınızın LocalStorage alanında saklanır ve hiçbir sunucuya gönderilmez.",
+                    "• Güvenli DOM İşleme: Uygulama içerisinde güvensiz innerHTML veya eval çağrıları kullanılmaz."
+                ];
+                items.forEach(txt => {
+                    const p = document.createElement("p");
+                    p.textContent = txt;
+                    body.appendChild(p);
+                });
+            }
+
+            this.dom.infoModal.classList.remove("hidden");
+        }
+
+        /**
+         * ====================================================================
+         * 11. EVENT LISTENERS & KEYBOARD SHORTCUTS
+         * ====================================================================
+         */
+        bindEvents() {
+            this.dom.surahSelect.addEventListener("change", () => {
+                this.state.surahId = parseInt(this.dom.surahSelect.value, 10);
+                this.state.activeVerseNum = 1;
+                this.renderSurah();
+                this.dom.versesViewport.scrollTo({ top: 0, behavior: "smooth" });
+            });
+
+            const jumpHandler = () => {
+                const v = parseInt(this.dom.verseJumpInput.value, 10);
+                if (v >= 1) this.focusVerse(this.state.surahId, v, true);
+            };
+            this.dom.btnJumpVerse.addEventListener("click", jumpHandler);
+            this.dom.verseJumpInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") jumpHandler();
+            });
+
+            this.dom.translationSelect.addEventListener("change", () => {
+                this.state.trackId = this.dom.translationSelect.value;
+                localStorage.setItem("alkitab_track", this.state.trackId);
+                this.renderSurah();
+            });
+
+            this.dom.btnFontDec.addEventListener("click", () => this.applyFontScale(this.state.fontScale - 10));
+            this.dom.btnFontInc.addEventListener("click", () => this.applyFontScale(this.state.fontScale + 10));
+
+            document.querySelectorAll("[data-notes-h]").forEach(btn => {
+                btn.addEventListener("click", () => this.applyNotesHeightPreset(btn.getAttribute("data-notes-h")));
+            });
+
+            document.querySelectorAll("[data-lang-set]").forEach(btn => {
+                btn.addEventListener("click", () => this.applyLanguage(btn.getAttribute("data-lang-set"), true));
+            });
+
+            document.querySelectorAll("[data-theme-set]").forEach(btn => {
+                btn.addEventListener("click", () => this.applyTheme(btn.getAttribute("data-theme-set")));
+            });
+
+            document.querySelectorAll("#mobileTabGroup [data-tab]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    this.state.mobileTab = btn.getAttribute("data-tab");
+                    document.querySelectorAll("#mobileTabGroup .segmented-btn").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    this.applyMobileColumnFilter();
+                });
+            });
+            window.addEventListener("resize", () => this.applyMobileColumnFilter());
+
+            this.dom.btnNavBack.addEventListener("click", () => this.navigateHistory(-1));
+            this.dom.btnNavForward.addEventListener("click", () => this.navigateHistory(1));
+
+            // Search Modal
+            this.dom.btnOpenSearch.addEventListener("click", () => this.openSearchModal());
+            this.dom.btnCloseSearch.addEventListener("click", () => this.dom.searchModal.classList.add("hidden"));
+            this.dom.searchModal.addEventListener("click", (e) => {
+                if (e.target === this.dom.searchModal) this.dom.searchModal.classList.add("hidden");
+            });
+            this.dom.searchInput.addEventListener("input", () => this.runSearch());
+            [this.dom.chkSearchArabic, this.dom.chkSearchTranslation, this.dom.chkSearchNotes, this.dom.chkSearchAllTracks].forEach(chk => {
+                chk.addEventListener("change", () => this.runSearch());
+            });
+
+            // Studio Modal
+            this.dom.btnOpenStudio.addEventListener("click", () => this.openStudioModal());
+            this.dom.btnCloseStudio.addEventListener("click", () => this.dom.studioModal.classList.add("hidden"));
+            this.dom.btnCloseStudioFooter.addEventListener("click", () => this.dom.studioModal.classList.add("hidden"));
+            this.dom.studioModal.addEventListener("click", (e) => {
+                if (e.target === this.dom.studioModal) this.dom.studioModal.classList.add("hidden");
+            });
+
+            this.dom.btnScaffoldSurah.addEventListener("click", () => {
+                const id = parseInt(this.dom.allSurahCatalogSelect.value, 10);
+                this.scaffoldSurahById(id, false);
+            });
+            this.dom.btnScaffoldAll114.addEventListener("click", () => this.scaffoldAll114Surahs());
+            this.dom.btnCloneSuleymaniyeToCustom.addEventListener("click", () => this.cloneSuleymaniyeToCustom());
+
+            this.dom.studioSurahSelect.addEventListener("change", () => {
+                const sId = parseInt(this.dom.studioSurahSelect.value, 10);
+                this.populateStudioVerseSelect(sId, 1);
+                this.loadVerseIntoStudioForm();
+            });
+            this.dom.studioVerseSelect.addEventListener("change", () => this.loadVerseIntoStudioForm());
+            this.dom.studioTrackSelect.addEventListener("change", () => this.loadVerseIntoStudioForm());
+            this.dom.btnSaveCustomVerse.addEventListener("click", () => this.saveVerseFromStudioForm());
+
+            this.dom.btnSaveRemoteUrl.addEventListener("click", async () => {
+                const defaultFile = `./${this.getDefaultJsonFilename(this.state.lang)}`;
+                const url = this.dom.remoteJsonUrlInput.value.trim() || defaultFile;
+                this.state.remoteJsonUrl = url;
+                localStorage.setItem(`alkitab_remote_json_url_${this.state.lang}`, url);
+                const ok = await this.tryLoadExternalJson();
+                this.showToast(ok
+                    ? `Uzak JSON başarıyla bağlandı (${this.state.lang.toUpperCase()}): ${url}`
+                    : `Uzak JSON alınamadı (${url}). CORS veya dosya yolunu kontrol edin.`);
+            });
+
+            this.dom.btnCopyJsonExport.addEventListener("click", () => {
+                this.copyStringToClipboard(JSON.stringify(this.db, null, 2));
+                this.showToast(`Tüm ${this.getDefaultJsonFilename(this.state.lang)} içeriği panoya kopyalandı.`);
+            });
+            this.dom.btnDownloadJson.addEventListener("click", () => this.downloadJsonFile());
+            this.dom.fileImportJson.addEventListener("change", (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    this.importJsonFile(e.target.files[0]);
+                }
+            });
+            this.dom.btnResetLocalOverrides.addEventListener("click", async () => {
+                localStorage.removeItem(this.getStorageOverrideKey(this.state.lang));
+                if (this.state.lang === "tr") {
+                    localStorage.removeItem("alkitab_custom_overrides");
+                }
+                this.db = JSON.parse(JSON.stringify(DEFAULT_QURAN_DB));
+                await this.tryLoadExternalJson();
+                this.populateSurahDropdowns();
+                this.populateStudioVerseSelect(this.state.surahId, 1);
+                this.loadVerseIntoStudioForm();
+                this.refreshJsonPreview();
+                this.renderSurah();
+                this.showToast(`Yerel önbellek temizlendi ve ${this.getDefaultJsonFilename(this.state.lang)} ile eşitlendi.`);
+            });
+
+            // Info & Toast
+            this.dom.btnOpenGuide.addEventListener("click", () => this.openInfoModal("guide"));
+            this.dom.btnOpenPrivacy.addEventListener("click", () => this.openInfoModal("privacy"));
+            this.dom.btnCloseInfo.addEventListener("click", () => this.dom.infoModal.classList.add("hidden"));
+            this.dom.btnCloseInfoBtn.addEventListener("click", () => this.dom.infoModal.classList.add("hidden"));
+            this.dom.toastCloseBtn.addEventListener("click", () => this.dom.toastBanner.classList.add("hidden"));
+
+            // Global Keyboard Shortcuts (Ctrl+K / Cmd+K & Escape)
+            document.addEventListener("keydown", (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                    e.preventDefault();
+                    this.openSearchModal();
+                } else if (e.key === "Escape") {
+                    this.dom.searchModal.classList.add("hidden");
+                    this.dom.studioModal.classList.add("hidden");
+                    this.dom.infoModal.classList.add("hidden");
+                }
+            });
+        }
+    }
+
+    /**
+     * ========================================================================
+     * 12. OFFLINE PWA SERVICE WORKER REGISTRATION & APP BOOTSTRAP
+     * ========================================================================
+     */
+    function registerInlineServiceWorker() {
+        if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+        const swCode = `
+            const CACHE_NAME = "alkitab-pwa-v1";
+            self.addEventListener("install", (e) => {
+                self.skipWaiting();
+            });
+            self.addEventListener("activate", (e) => {
+                e.waitUntil(self.clients.claim());
+            });
+            self.addEventListener("fetch", (e) => {
+                if (e.request.method !== "GET") return;
+                e.respondWith(
+                    fetch(e.request)
+                        .then((resp) => {
+                            const clone = resp.clone();
+                            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+                            return resp;
+                        })
+                        .catch(() => caches.match(e.request))
+                );
+            });
+        `;
+        try {
+            const blob = new Blob([swCode], { type: "application/javascript" });
+            const swUrl = URL.createObjectURL(blob);
+            navigator.serviceWorker.register(swUrl).catch(() => {});
+        } catch (err) {
+            // Ignore in sandboxed iframe previews
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        window.quranApp = new QuranResearchApp();
+        registerInlineServiceWorker();
+    });
+</script>
+</body>
+</html>
